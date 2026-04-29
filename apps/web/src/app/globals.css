@@ -1,24 +1,130 @@
 @import "tailwindcss";
 
+/* MapLibre canvas styles */
+@import "maplibre-gl/dist/maplibre-gl.css";
+
+/* Class-based dark mode (next-themes toggles `.dark` on <html>) */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/*
+ * Brand palette + light/dark surface system.
+ *
+ * The DealHunter brand spec only defines a dark palette (negro profundo, gris carbón,
+ * azul eléctrico, dorado ámbar, blanco, gris claro). Light mode is a project-defined
+ * complement: the dark surfaces flip to near-white, foreground flips to near-black,
+ * and action/urgent stay stable so semantic meaning is preserved across themes.
+ *
+ * Neumorphism shadows are paired (one lighter, one darker than the surface). The
+ * shadow colors flip per theme so the embossed effect reads correctly on both.
+ */
 :root {
-  --background: #ffffff;
-  --foreground: #0a0a0a;
+  /* Surfaces */
+  --bg-base: #f0f2f5;
+  --bg-card: #f5f7fa;
+  --bg-elevated: #ffffff;
+  /* Foreground */
+  --fg: #0f1115;
+  --fg-muted: #5a6270;
+  --fg-subtle: #8a91a0;
+  /* Borders */
+  --border: rgba(15, 17, 21, 0.08);
+  /* Action / Urgent — stable across themes */
+  --action: #2D6EF5;
+  --action-fg: #ffffff;
+  --urgent: #F5A623;
+  --urgent-fg: #1a1a1a;
+  /* Neumorphism shadow pair (light surface → bright highlight, soft shadow) */
+  --neu-light: rgba(255, 255, 255, 0.95);
+  --neu-dark: rgba(163, 177, 198, 0.55);
+  /* Slider thumb — dark in light mode for contrast */
+  --slider-thumb: #0f1115;
+  --slider-thumb-ring: rgba(15, 17, 21, 0.12);
+  --slider-track: rgba(15, 17, 21, 0.1);
+  --slider-range: var(--action);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+.dark {
+  --bg-base: #0D0D0D;
+  --bg-card: #1A1A1A;
+  --bg-elevated: #232323;
+  --fg: #FFFFFF;
+  --fg-muted: #A0A0A0;
+  --fg-subtle: #6b6b6b;
+  --border: rgba(255, 255, 255, 0.08);
+  --action: #2D6EF5;
+  --action-fg: #ffffff;
+  --urgent: #F5A623;
+  --urgent-fg: #1a1a1a;
+  /* Inverted shadow pair on dark surface */
+  --neu-light: rgba(255, 255, 255, 0.04);
+  --neu-dark: rgba(0, 0, 0, 0.55);
+  /* Slider thumb — light in dark mode for contrast */
+  --slider-thumb: #ffffff;
+  --slider-thumb-ring: rgba(255, 255, 255, 0.18);
+  --slider-track: rgba(255, 255, 255, 0.1);
+  --slider-range: var(--action);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
+  /* Map CSS vars to Tailwind utility classes (bg-base, text-fg, etc.) */
+  --color-bg-base: var(--bg-base);
+  --color-bg-card: var(--bg-card);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-action: var(--action);
+  --color-action-fg: var(--action-fg);
+  --color-urgent: var(--urgent);
+  --color-urgent-fg: var(--urgent-fg);
+
+  /* Poppins via next/font/google → exposed as --font-poppins on <html> */
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+
+  /* Brand type scale */
+  --text-h1: 48px;
+  --text-h1--line-height: 1.2;
+  --text-h2: 32px;
+  --text-h2--line-height: 1.2;
+  --text-h3: 24px;
+  --text-h3--line-height: 1.2;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-label: 12px;
+  --text-label--line-height: 1.4;
+  --text-cta: 16px;
+  --text-cta--line-height: 1.2;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  /* Neumorphism shadow utilities — paired light + dark offsets */
+  --shadow-neu: 8px 8px 20px var(--neu-dark), -8px -8px 20px var(--neu-light);
+  --shadow-neu-sm: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
+  --shadow-neu-inset: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
+  --shadow-neu-pressed: inset 6px 6px 12px var(--neu-dark), inset -6px -6px 12px var(--neu-light);
+
+  /* Radii */
+  --radius-neu: 16px;
+  --radius-neu-sm: 10px;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background: var(--bg-base);
+  color: var(--fg);
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv11";
+}
+
+/* MapLibre attribution / controls — minimal styling so they don't clash */
+.maplibregl-ctrl-attrib {
+  background: color-mix(in oklab, var(--bg-card) 80%, transparent) !important;
+  color: var(--fg-muted) !important;
+  font-size: 10px !important;
+}
+.maplibregl-ctrl-attrib a {
+  color: var(--fg-muted) !important;
 }
