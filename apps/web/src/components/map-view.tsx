@@ -22,7 +22,7 @@ export function MapView() {
   const styleUrl = !mounted || resolvedTheme === "dark" ? STYLE_DARK : STYLE_LIGHT;
 
   return (
-    <div className="relative h-full w-full">
+    <div className="absolute inset-0">
       <Map
         // Force a remount when the style URL changes — MapLibre's `setStyle`
         // is finicky with diffing, and the cleaner UX is a fresh map.
