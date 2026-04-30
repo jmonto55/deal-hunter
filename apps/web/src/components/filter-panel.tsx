@@ -218,8 +218,10 @@ export function FilterPanel(props: {
         bg-bg-card
       "
     >
-      {/* Mobile: header + tab strip + horizontal carousel */}
-      <div className="md:hidden p-4 space-y-4">
+      {/* Mobile: header + tab strip + horizontal carousel.
+       * Tighter bottom padding so the gap between the filter card and the
+       * heatmap legend matches the gap between the tab strip and the card. */}
+      <div className="md:hidden pt-4 px-4 pb-1 space-y-4">
         {header}
         <MobileFilterCarousel cards={mobileCards} />
       </div>
@@ -297,7 +299,10 @@ function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
         })}
       </nav>
       <Carousel opts={{ align: "start" }} setApi={setApi}>
-        <CarouselContent>
+        {/* items-start lets each slide take its natural content height
+         * instead of stretching to match the tallest, so a short card
+         * (Precio) doesn't get padded out to a chip-wall card's height. */}
+        <CarouselContent className="items-start">
           {cards.map((card) => (
             <CarouselItem key={card.key}>
               <FilterCardLayout label={card.label}>{card.node}</FilterCardLayout>
@@ -318,13 +323,13 @@ function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
 function FilterCardLayout({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div
-      className="rounded-[var(--radius-neu)] p-4 bg-bg-base flex flex-col h-full"
+      className="rounded-[var(--radius-neu)] p-4 bg-bg-base"
       style={{ boxShadow: "var(--shadow-neu-sm)" }}
     >
       <div className="text-label font-medium uppercase tracking-wide text-fg-muted mb-3">
         {label}
       </div>
-      <div className="flex-1 flex flex-col justify-center">{children}</div>
+      {children}
     </div>
   );
 }

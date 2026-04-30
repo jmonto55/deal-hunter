@@ -51,10 +51,11 @@ const es = {
   // Heatmap legend
   "legend.title": "Precio por área",
 
-  // Map tooltip
+  // Map tooltip + controls
   "map.propertySingular": "propiedad",
   "map.propertyPlural": "propiedades",
   "map.avg": "promedio",
+  "map.fitToFilters": "Ajustar al filtro",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -96,6 +97,7 @@ const en: Record<keyof typeof es, string> = {
   "map.propertySingular": "property",
   "map.propertyPlural": "properties",
   "map.avg": "avg",
+  "map.fitToFilters": "Fit to filter",
 };
 
 export type MessageKey = keyof typeof es;

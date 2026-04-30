@@ -1,18 +1,23 @@
 "use client";
 
 import { useTheme } from "next-themes";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Map } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator, WebMercatorViewport, type PickingInfo } from "@deck.gl/core";
+import { Maximize2 } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/provider";
 
 export type HexAggregate = { hex: string; count: number; avgPrice: number };
 export type LngLatBounds = [[number, number], [number, number]];
 
+// `voyager` is Carto's detailed light style — shows street names, parks,
+// water bodies, neighborhood boundaries. `dark-matter` stays for dark mode
+// (Carto's only detailed dark style is too colorful and fights the heatmap).
 const STYLE_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
-const STYLE_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
+const STYLE_LIGHT = "https://basemaps.cartocdn.com/gl/voyager-gl-style/style.json";
 
 const INITIAL_VIEW_STATE = {
   longitude: -75.5812,
@@ -30,24 +35,28 @@ const FLY_DURATION_MS = 900;
 type RGBA = [number, number, number, number];
 
 /**
- * Diverging RdYlGn palette (reversed so green = cold/cheap, red = hot/expensive).
- * Eight stops give smooth transitions across the spectrum, with yellow as the
- * neutral midpoint per heatmap convention. Colors come from ColorBrewer's
- * 9-class RdYlGn — we drop the lightest near-white middle stops to keep
- * mid-price hexes visible against the basemap.
+ * Diverging RdYlGn palette (reversed so green = cheap, red = expensive).
+ * 10 stops from ColorBrewer's 11-class scale, dropping the bleached
+ * `#ffffbf` middle stop so mid-price hexes don't fade against light
+ * basemaps. More stops = finer color transitions.
  *
  * Absolute scale (anchored to global priceMin/priceMax) so dark red always
- * means "expensive" regardless of which slice is currently shown.
+ * means "expensive" regardless of which slice is currently shown. The sqrt
+ * normalization at the call site stretches the cheap-mid range across more
+ * of the gradient (where ~80% of properties cluster) so listings in that
+ * band become visually distinguishable.
  */
 export const PRICE_STOPS: Array<[number, RGBA]> = [
-  [0.0, [0, 104, 55, 220]],     // dark green
-  [0.15, [26, 152, 80, 225]],   // green
-  [0.3, [102, 189, 99, 225]],   // light green
-  [0.45, [217, 239, 139, 230]], // yellow-green
-  [0.55, [254, 224, 139, 230]], // light yellow
-  [0.7, [253, 174, 97, 235]],   // orange
-  [0.85, [244, 109, 67, 240]],  // red-orange
-  [1.0, [165, 0, 38, 245]],     // dark red
+  [0.0,  [0,   104, 55,  220]], // dark green   #006837
+  [0.11, [26,  152, 80,  225]], // green        #1a9850
+  [0.22, [102, 189, 99,  225]], // light green  #66bd63
+  [0.33, [166, 217, 106, 225]], // lime         #a6d96a
+  [0.44, [217, 239, 139, 230]], // pale lime    #d9ef8b
+  [0.56, [254, 224, 139, 230]], // pale yellow  #fee08b
+  [0.67, [253, 174, 97,  235]], // amber        #fdae61
+  [0.78, [244, 109, 67,  240]], // orange-red   #f46d43
+  [0.89, [215, 48,  39,  245]], // red          #d73027
+  [1.0,  [165, 0,   38,  250]], // dark red     #a50026
 ];
 
 function interpolate(stops: Array<[number, RGBA]>, t: number): RGBA {
@@ -115,8 +124,15 @@ export function MapView({
         id: "deals-price",
         data: hexes,
         getHexagon: (d) => d.hex,
+        // sqrt() stretches the cheap-mid range across more of the gradient.
+        // Without it, ~80% of hexes cluster at the green end and become
+        // visually indistinguishable; with it, that band spreads across
+        // green → lime → yellow → amber for real differentiation.
         getFillColor: (d) =>
-          interpolate(PRICE_STOPS, (d.avgPrice - priceMin) / priceRange),
+          interpolate(
+            PRICE_STOPS,
+            Math.sqrt((d.avgPrice - priceMin) / priceRange),
+          ),
         extruded: false,
         stroked: false,
         filled: true,
@@ -127,32 +143,47 @@ export function MapView({
     [hexes, priceMin, priceMax, priceRange],
   );
 
-  // Auto-fit — first fit is instant; subsequent fits animate.
+  /**
+   * Fit the viewport to the current `fitBounds` and fly there. Reused by
+   * both the auto-fit effect (when filters change) and the manual reset
+   * FAB (when the user wants to recenter after panning).
+   */
+  const flyToBounds = useCallback(
+    (duration: number) => {
+      if (!fitBounds || !containerRef.current) return;
+      const { width, height } = containerRef.current.getBoundingClientRect();
+      if (width === 0 || height === 0) return;
+
+      const viewport = new WebMercatorViewport({ width, height });
+      const fitted = viewport.fitBounds(fitBounds, {
+        padding: FIT_PADDING,
+        maxZoom: FIT_MAX_ZOOM,
+      });
+
+      setViewState({
+        longitude: fitted.longitude,
+        latitude: fitted.latitude,
+        zoom: fitted.zoom,
+        pitch: 0,
+        bearing: 0,
+        transitionDuration: duration,
+        transitionInterpolator: new FlyToInterpolator(),
+      });
+
+      lastFitRef.current = fitBounds;
+    },
+    [fitBounds],
+  );
+
+  // Auto-fit on bounds change. First fit is instant; subsequent fits animate.
+  // Skips if the bounds haven't actually changed (e.g. toggling a filter that
+  // doesn't affect extent).
   useEffect(() => {
-    if (!fitBounds || !containerRef.current) return;
+    if (!fitBounds) return;
     if (boundsEqual(lastFitRef.current, fitBounds)) return;
-    const { width, height } = containerRef.current.getBoundingClientRect();
-    if (width === 0 || height === 0) return;
-
-    const viewport = new WebMercatorViewport({ width, height });
-    const fitted = viewport.fitBounds(fitBounds, {
-      padding: FIT_PADDING,
-      maxZoom: FIT_MAX_ZOOM,
-    });
-
-    setViewState({
-      longitude: fitted.longitude,
-      latitude: fitted.latitude,
-      zoom: fitted.zoom,
-      pitch: 0,
-      bearing: 0,
-      transitionDuration: isFirstFitRef.current ? 0 : FLY_DURATION_MS,
-      transitionInterpolator: new FlyToInterpolator(),
-    });
-
+    flyToBounds(isFirstFitRef.current ? 0 : FLY_DURATION_MS);
     isFirstFitRef.current = false;
-    lastFitRef.current = fitBounds;
-  }, [fitBounds]);
+  }, [fitBounds, flyToBounds]);
 
   return (
     <div ref={containerRef} className="absolute inset-0">
@@ -167,6 +198,22 @@ export function MapView({
       >
         <Map key={styleUrl} mapStyle={styleUrl} attributionControl={{ compact: true }} />
       </DeckGL>
+
+      {/* Fit-to-filter FAB. `bg-bg-elevated` is brighter than the basemap
+       * in both themes (vs `bg-bg-base` which matches the dark map exactly
+       * and disappears), and the rounded-full + drop-shadow gives the
+       * floating-above-the-map feel of standard map controls. */}
+      <Button
+        variant="outline"
+        size="icon"
+        onClick={() => flyToBounds(FLY_DURATION_MS)}
+        disabled={!fitBounds}
+        aria-label={t("map.fitToFilters")}
+        title={t("map.fitToFilters")}
+        className="absolute top-3 right-3 z-10 rounded-full bg-bg-elevated/95 backdrop-blur-sm shadow-md hover:bg-bg-elevated"
+      >
+        <Maximize2 />
+      </Button>
 
       {hover?.object && (
         <div
