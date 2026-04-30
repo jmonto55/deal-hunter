@@ -3,6 +3,8 @@
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
+import { Switch } from "@/components/ui/switch";
+import { DENSITY_STOPS, PRICE_STOPS, type LayerVisibility } from "@/components/map-view";
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   apartamento: "Apartamento",
@@ -22,6 +24,20 @@ function toggleSet<T>(prev: ReadonlySet<T>, value: T): Set<T> {
   if (next.has(value)) next.delete(value);
   else next.add(value);
   return next;
+}
+
+function formatCOPShort(value: number) {
+  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
+  if (value >= 1_000_000) return `$${Math.round(value / 1_000_000)}M`;
+  return `$${value.toLocaleString("en-US")}`;
+}
+
+function stopsToCssGradient(stops: Array<[number, [number, number, number, number]]>) {
+  // Solid colors (alpha=1) for the legend so the bar reads cleanly even
+  // when the layer's actual rendering uses lower alpha for blending.
+  return stops
+    .map(([t, [r, g, b]]) => `rgb(${r}, ${g}, ${b}) ${t * 100}%`)
+    .join(", ");
 }
 
 export function FilterPanel({
@@ -44,6 +60,8 @@ export function FilterPanel({
   allNeighborhoods,
   neighborhoods,
   onNeighborhoodsChange,
+  layerVisibility,
+  onLayerVisibilityChange,
 }: {
   total: number;
   matched: number;
@@ -64,6 +82,8 @@ export function FilterPanel({
   allNeighborhoods: string[];
   neighborhoods: ReadonlySet<string>;
   onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
+  layerVisibility: LayerVisibility;
+  onLayerVisibilityChange: (next: LayerVisibility) => void;
 }) {
   return (
     <aside
@@ -85,6 +105,33 @@ export function FilterPanel({
             {" properties match filters"}
           </p>
         </header>
+
+        <Card>
+          <Section label="Layers">
+            <LayerToggle
+              label="Density"
+              description="More properties per area"
+              checked={layerVisibility.density}
+              onCheckedChange={(c) =>
+                onLayerVisibilityChange({ ...layerVisibility, density: c })
+              }
+              gradient={stopsToCssGradient(DENSITY_STOPS)}
+              minLabel="Sparse"
+              maxLabel="Dense"
+            />
+            <LayerToggle
+              label="Price"
+              description="Average price per area"
+              checked={layerVisibility.price}
+              onCheckedChange={(c) =>
+                onLayerVisibilityChange({ ...layerVisibility, price: c })
+              }
+              gradient={stopsToCssGradient(PRICE_STOPS)}
+              minLabel={formatCOPShort(priceMin)}
+              maxLabel={formatCOPShort(priceMax)}
+            />
+          </Section>
+        </Card>
 
         <Card>
           <PriceRangeFilter
@@ -182,6 +229,50 @@ function Section({
         )}
       </label>
       {children}
+    </div>
+  );
+}
+
+function LayerToggle({
+  label,
+  description,
+  checked,
+  onCheckedChange,
+  gradient,
+  minLabel,
+  maxLabel,
+}: {
+  label: string;
+  description: string;
+  checked: boolean;
+  onCheckedChange: (next: boolean) => void;
+  gradient: string;
+  minLabel: string;
+  maxLabel: string;
+}) {
+  return (
+    <div className="space-y-2">
+      <div className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
+          <div className="text-body font-semibold text-fg">{label}</div>
+          <div className="text-label text-fg-subtle truncate">{description}</div>
+        </div>
+        <Switch
+          checked={checked}
+          onCheckedChange={onCheckedChange}
+          aria-label={`Toggle ${label} layer`}
+        />
+      </div>
+      <div className={checked ? "" : "opacity-40"}>
+        <div
+          className="h-2 rounded-full"
+          style={{ background: `linear-gradient(to right, ${gradient})` }}
+        />
+        <div className="mt-1.5 flex justify-between text-label text-fg-subtle">
+          <span>{minLabel}</span>
+          <span>{maxLabel}</span>
+        </div>
+      </div>
     </div>
   );
 }

@@ -3,7 +3,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
-import { MapView, type HexAggregate, type LngLatBounds } from "@/components/map-view";
+import {
+  MapView,
+  type HexAggregate,
+  type LayerVisibility,
+  type LngLatBounds,
+} from "@/components/map-view";
 
 export type DealPoint = {
   lat: number;
@@ -23,7 +28,7 @@ export type Filters = {
   neighborhoods: ReadonlySet<string>;
 };
 
-const H3_RESOLUTION = 9;
+const H3_RESOLUTION = 10; // ~65m edge — block / building-cluster scale
 const FIT_DEBOUNCE_MS = 300;
 
 function aggregateToHexes(points: DealPoint[], res: number): HexAggregate[] {
@@ -114,6 +119,10 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [propertyTypes, setPropertyTypes] = useState<ReadonlySet<string>>(new Set());
   const [bedroomBuckets, setBedroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
+    density: true,
+    price: false,
+  });
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -163,9 +172,17 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         allNeighborhoods={allNeighborhoods}
         neighborhoods={neighborhoods}
         onNeighborhoodsChange={setNeighborhoods}
+        layerVisibility={layerVisibility}
+        onLayerVisibilityChange={setLayerVisibility}
       />
       <section className="relative flex-1 min-h-[60vh] md:min-h-0">
-        <MapView hexes={hexes} fitBounds={fitBounds} />
+        <MapView
+          hexes={hexes}
+          fitBounds={fitBounds}
+          layerVisibility={layerVisibility}
+          priceMin={priceMin}
+          priceMax={priceMax}
+        />
       </section>
     </main>
   );
