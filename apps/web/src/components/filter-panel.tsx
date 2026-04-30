@@ -193,14 +193,6 @@ export function FilterPanel(props: {
     { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
   ];
 
-  const header = (
-    <header>
-      <h2 className="text-h3 font-semibold text-fg leading-tight">
-        {t("panel.heading")}
-      </h2>
-    </header>
-  );
-
   return (
     <aside
       className="
@@ -216,17 +208,15 @@ export function FilterPanel(props: {
         <MobileFilterCarousel cards={mobileCards} />
       </div>
 
-      {/* Desktop: header + vertical stack */}
+      {/* Desktop: vertical stack (heading lives above the heatmap legend
+       * in DealsExplorer so it sits over the map column). */}
       <div className="hidden md:block p-5 md:max-h-[calc(100vh-3.5rem)] md:overflow-y-auto">
-        <div className="space-y-6">
-          {header}
-          <div className="space-y-4">
-            {desktopCards.map((card) => (
-              <FilterCardLayout key={card.key} label={card.label}>
-                {card.node}
-              </FilterCardLayout>
-            ))}
-          </div>
+        <div className="space-y-4">
+          {desktopCards.map((card) => (
+            <FilterCardLayout key={card.key} label={card.label}>
+              {card.node}
+            </FilterCardLayout>
+          ))}
         </div>
       </div>
     </aside>

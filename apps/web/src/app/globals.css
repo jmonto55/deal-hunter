@@ -59,10 +59,11 @@
   --action-fg: #ffffff;
   --urgent: #F5A623;
   --urgent-fg: #1a1a1a;
-  /* Inverted shadow pair on dark surface — slightly toned down for parity
-   * with the lighter neumorphism in the light theme. */
-  --neu-light: rgba(255, 255, 255, 0.035);
-  --neu-dark: rgba(0, 0, 0, 0.5);
+  /* Light-on-dark neumorphism: both shadow halves use white tints so the
+   * embossed effect reads as a soft glow on the dark surface instead of
+   * disappearing into the near-black background. */
+  --neu-light: rgba(255, 255, 255, 0.12);
+  --neu-dark: rgba(255, 255, 255, 0.04);
   /* Slider — neutral gray accent (not brand-blue), bright thumb on dark */
   --slider-thumb: #ffffff;
   --slider-thumb-ring: rgba(255, 255, 255, 0.18);

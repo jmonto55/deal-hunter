@@ -188,6 +188,13 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         onNeighborhoodsChange={setNeighborhoods}
       />
         <section className="relative flex-1 min-h-[60vh] md:min-h-0 flex flex-col">
+          {/* Desktop-only page title — sits above the heatmap legend so the
+           * map column reads as: title → price legend → map. */}
+          <header className="hidden md:block shrink-0 border-b border-border bg-bg-card px-6 py-3">
+            <h1 className="text-h3 font-semibold text-fg leading-tight">
+              {t("panel.heading")}
+            </h1>
+          </header>
           <HeatmapLegend priceMin={priceMin} priceMax={priceMax} />
           <div className="relative flex-1 min-h-0">
             <MatchCount matched={filtered.length} total={points.length} />
