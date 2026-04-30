@@ -193,11 +193,6 @@ export function PropertyDrawer({
             </dl>
 
             <Card>
-              <SectionLabel>{t("drawer.description")}</SectionLabel>
-              <p className="text-body text-fg-muted leading-relaxed">{description}</p>
-            </Card>
-
-            <Card>
               <SectionLabel>{t("drawer.amenities")}</SectionLabel>
               <AmenityList amenities={extras.amenities} t={t} />
             </Card>
