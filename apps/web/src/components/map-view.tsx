@@ -101,11 +101,13 @@ export function MapView({
   fitBounds,
   priceMin,
   priceMax,
+  onHexClick,
 }: {
   hexes: HexAggregate[];
   fitBounds: LngLatBounds | null;
   priceMin: number;
   priceMax: number;
+  onHexClick?: (hex: string | null) => void;
 }) {
   const t = useT();
   const { resolvedTheme } = useTheme();
@@ -195,6 +197,7 @@ export function MapView({
           setViewState(next as Record<string, unknown>)
         }
         onHover={(info) => setHover(info.object ? info : null)}
+        onClick={(info) => onHexClick?.(info.object ? info.object.hex : null)}
       >
         <Map key={styleUrl} mapStyle={styleUrl} attributionControl={{ compact: true }} />
       </DeckGL>

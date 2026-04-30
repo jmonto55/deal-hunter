@@ -6,6 +6,7 @@ import { FilterPanel } from "@/components/filter-panel";
 import { HeatmapLegend } from "@/components/heatmap-legend";
 import { MapView, type HexAggregate, type LngLatBounds } from "@/components/map-view";
 import { MatchCount } from "@/components/match-count";
+import { PropertyDrawer } from "@/components/property-drawer";
 import { useT } from "@/lib/i18n/provider";
 
 export type DealPoint = {
@@ -171,6 +172,16 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     setNeighborhoods(new Set());
   }, [priceMin, priceMax, areaMin, areaMax]);
 
+  // ── Property drawer ────────────────────────────────────────────────────
+  const [selectedHex, setSelectedHex] = useState<string | null>(null);
+  const selectedProperty = useMemo(() => {
+    if (!selectedHex) return null;
+    return (
+      filtered.find((p) => latLngToCell(p.lat, p.lng, H3_RESOLUTION) === selectedHex) ??
+      null
+    );
+  }, [selectedHex, filtered]);
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Mobile-only page title — stays at the top of the viewport even
@@ -224,10 +235,17 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
               fitBounds={fitBounds}
               priceMin={priceMin}
               priceMax={priceMax}
+              onHexClick={setSelectedHex}
             />
           </div>
         </section>
       </main>
+      {selectedProperty && (
+        <PropertyDrawer
+          property={selectedProperty}
+          onClose={() => setSelectedHex(null)}
+        />
+      )}
     </div>
   );
 }

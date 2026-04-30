@@ -54,6 +54,28 @@ const es = {
   // Heatmap legend
   "legend.title": "Precio por área",
 
+  // Property drawer
+  "drawer.title": "Detalle de propiedad",
+  "drawer.closeAria": "Cerrar",
+  "drawer.pricePerM2": "Precio por m²",
+  "drawer.parking": "Parqueaderos",
+  "drawer.estrato": "Estrato",
+  "drawer.yearBuilt": "Año",
+  "drawer.hoaFee": "Administración",
+  "drawer.daysListed": "Publicado hace {n} días",
+  "drawer.amenities": "Amenidades",
+  "drawer.description": "Descripción",
+  "drawer.descriptionTemplate":
+    "{type} de {area} m² con {bedrooms} habitaciones y {bathrooms} baños en {neighborhood}. Disfruta de acabados de primer nivel, ventilación natural e iluminación privilegiada en una de las zonas más buscadas del Área Metropolitana.",
+  "amenity.pool": "Piscina",
+  "amenity.gym": "Gimnasio",
+  "amenity.security": "Vigilancia 24/7",
+  "amenity.rooftop": "Terraza",
+  "amenity.garden": "Jardines",
+  "amenity.concierge": "Portería",
+  "amenity.playground": "Zona infantil",
+  "amenity.bbq": "BBQ",
+
   // Map tooltip + controls
   "map.propertySingular": "propiedad",
   "map.propertyPlural": "propiedades",
@@ -99,6 +121,27 @@ const en: Record<keyof typeof es, string> = {
   "propertyType.casaCampestre": "Country house",
 
   "legend.title": "Price per area",
+
+  "drawer.title": "Property details",
+  "drawer.closeAria": "Close",
+  "drawer.pricePerM2": "Price per m²",
+  "drawer.parking": "Parking",
+  "drawer.estrato": "Stratum",
+  "drawer.yearBuilt": "Year built",
+  "drawer.hoaFee": "HOA fee",
+  "drawer.daysListed": "Listed {n} days ago",
+  "drawer.amenities": "Amenities",
+  "drawer.description": "Description",
+  "drawer.descriptionTemplate":
+    "{type} of {area} m² with {bedrooms} bedrooms and {bathrooms} bathrooms in {neighborhood}. Enjoy top-tier finishes, natural ventilation, and prime light in one of the most sought-after areas of the Metropolitan Region.",
+  "amenity.pool": "Pool",
+  "amenity.gym": "Gym",
+  "amenity.security": "24/7 security",
+  "amenity.rooftop": "Rooftop",
+  "amenity.garden": "Gardens",
+  "amenity.concierge": "Concierge",
+  "amenity.playground": "Playground",
+  "amenity.bbq": "BBQ",
 
   "map.propertySingular": "property",
   "map.propertyPlural": "properties",
