@@ -4,7 +4,7 @@ import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
 import { Switch } from "@/components/ui/switch";
-import { DENSITY_STOPS, PRICE_STOPS, type LayerVisibility } from "@/components/map-view";
+import { PRICE_STOPS } from "@/components/map-view";
 
 const PROPERTY_TYPE_LABELS: Record<string, string> = {
   apartamento: "Apartamento",
@@ -60,8 +60,8 @@ export function FilterPanel({
   allNeighborhoods,
   neighborhoods,
   onNeighborhoodsChange,
-  layerVisibility,
-  onLayerVisibilityChange,
+  showHeatmap,
+  onShowHeatmapChange,
 }: {
   total: number;
   matched: number;
@@ -82,8 +82,8 @@ export function FilterPanel({
   allNeighborhoods: string[];
   neighborhoods: ReadonlySet<string>;
   onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
-  layerVisibility: LayerVisibility;
-  onLayerVisibilityChange: (next: LayerVisibility) => void;
+  showHeatmap: boolean;
+  onShowHeatmapChange: (next: boolean) => void;
 }) {
   return (
     <aside
@@ -107,25 +107,12 @@ export function FilterPanel({
         </header>
 
         <Card>
-          <Section label="Layers">
-            <LayerToggle
-              label="Density"
-              description="More properties per area"
-              checked={layerVisibility.density}
-              onCheckedChange={(c) =>
-                onLayerVisibilityChange({ ...layerVisibility, density: c })
-              }
-              gradient={stopsToCssGradient(DENSITY_STOPS)}
-              minLabel="Sparse"
-              maxLabel="Dense"
-            />
+          <Section label="Heatmap">
             <LayerToggle
               label="Price"
-              description="Average price per area"
-              checked={layerVisibility.price}
-              onCheckedChange={(c) =>
-                onLayerVisibilityChange({ ...layerVisibility, price: c })
-              }
+              description="Cheap → expensive per area"
+              checked={showHeatmap}
+              onCheckedChange={onShowHeatmapChange}
               gradient={stopsToCssGradient(PRICE_STOPS)}
               minLabel={formatCOPShort(priceMin)}
               maxLabel={formatCOPShort(priceMax)}

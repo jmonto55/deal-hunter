@@ -3,12 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
-import {
-  MapView,
-  type HexAggregate,
-  type LayerVisibility,
-  type LngLatBounds,
-} from "@/components/map-view";
+import { MapView, type HexAggregate, type LngLatBounds } from "@/components/map-view";
 
 export type DealPoint = {
   lat: number;
@@ -119,10 +114,7 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [propertyTypes, setPropertyTypes] = useState<ReadonlySet<string>>(new Set());
   const [bedroomBuckets, setBedroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
-  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({
-    density: true,
-    price: false,
-  });
+  const [showHeatmap, setShowHeatmap] = useState(true);
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -172,14 +164,14 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         allNeighborhoods={allNeighborhoods}
         neighborhoods={neighborhoods}
         onNeighborhoodsChange={setNeighborhoods}
-        layerVisibility={layerVisibility}
-        onLayerVisibilityChange={setLayerVisibility}
+        showHeatmap={showHeatmap}
+        onShowHeatmapChange={setShowHeatmap}
       />
       <section className="relative flex-1 min-h-[60vh] md:min-h-0">
         <MapView
           hexes={hexes}
           fitBounds={fitBounds}
-          layerVisibility={layerVisibility}
+          showHeatmap={showHeatmap}
           priceMin={priceMin}
           priceMax={priceMax}
         />

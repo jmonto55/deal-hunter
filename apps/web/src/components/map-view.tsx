@@ -10,11 +10,6 @@ import { FlyToInterpolator, WebMercatorViewport, type PickingInfo } from "@deck.
 export type HexAggregate = { hex: string; count: number; avgPrice: number };
 export type LngLatBounds = [[number, number], [number, number]];
 
-export type LayerVisibility = {
-  density: boolean;
-  price: boolean;
-};
-
 const STYLE_DARK = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json";
 const STYLE_LIGHT = "https://basemaps.cartocdn.com/gl/positron-gl-style/style.json";
 
@@ -30,33 +25,28 @@ const FIT_PADDING = 60;
 const FIT_MAX_ZOOM = 14;
 const FLY_DURATION_MS = 900;
 
-// ── Color scales ──────────────────────────────────────────────────────────
+// ── Price color scale ─────────────────────────────────────────────────────
 type RGBA = [number, number, number, number];
 
-// YlOrRd-ish — used for density (count-per-hex). Relative scale.
-export const DENSITY_STOPS: Array<[number, RGBA]> = [
-  [0.0, [255, 237, 160, 110]],
-  [0.25, [254, 178, 76, 170]],
-  [0.5, [253, 141, 60, 200]],
-  [0.75, [240, 59, 32, 220]],
-  [1.0, [189, 0, 38, 235]],
-];
-
-// ColorBrewer Greens — light → dark as price increases. Absolute scale
-// (anchored to global priceMin/priceMax) so dark green always means
-// "expensive" regardless of which slice is currently shown.
-//
-// Six stops with no near-white start so the cheapest hexes still read
-// as a distinct, saturated green rather than fading into the basemap.
-// The sqrt scaling applied to the input value (see getFillColor below)
-// further spreads the cheap end across more of the gradient.
+/**
+ * Diverging RdYlGn palette (reversed so green = cold/cheap, red = hot/expensive).
+ * Eight stops give smooth transitions across the spectrum, with yellow as the
+ * neutral midpoint per heatmap convention. Colors come from ColorBrewer's
+ * 9-class RdYlGn — we drop the lightest near-white middle stops to keep
+ * mid-price hexes visible against the basemap.
+ *
+ * Absolute scale (anchored to global priceMin/priceMax) so dark red always
+ * means "expensive" regardless of which slice is currently shown.
+ */
 export const PRICE_STOPS: Array<[number, RGBA]> = [
-  [0.0, [199, 233, 192, 190]],
-  [0.2, [161, 217, 155, 205]],
-  [0.4, [116, 196, 118, 220]],
-  [0.6, [65, 171, 93, 230]],
-  [0.8, [35, 139, 69, 240]],
-  [1.0, [0, 68, 27, 250]],
+  [0.0, [0, 104, 55, 220]],     // dark green
+  [0.15, [26, 152, 80, 225]],   // green
+  [0.3, [102, 189, 99, 225]],   // light green
+  [0.45, [217, 239, 139, 230]], // yellow-green
+  [0.55, [254, 224, 139, 230]], // light yellow
+  [0.7, [253, 174, 97, 235]],   // orange
+  [0.85, [244, 109, 67, 240]],  // red-orange
+  [1.0, [165, 0, 38, 245]],     // dark red
 ];
 
 function interpolate(stops: Array<[number, RGBA]>, t: number): RGBA {
@@ -99,13 +89,13 @@ function boundsEqual(a: LngLatBounds | null, b: LngLatBounds | null) {
 export function MapView({
   hexes,
   fitBounds,
-  layerVisibility,
+  showHeatmap,
   priceMin,
   priceMax,
 }: {
   hexes: HexAggregate[];
   fitBounds: LngLatBounds | null;
-  layerVisibility: LayerVisibility;
+  showHeatmap: boolean;
   priceMin: number;
   priceMax: number;
 }) {
@@ -117,48 +107,25 @@ export function MapView({
   const [hover, setHover] = useState<PickingInfo<HexAggregate> | null>(null);
 
   const styleUrl = resolvedTheme === "light" ? STYLE_LIGHT : STYLE_DARK;
-
-  const maxCount = useMemo(
-    () => Math.max(1, ...hexes.map((h) => h.count)),
-    [hexes],
-  );
-
   const priceRange = Math.max(1, priceMax - priceMin);
 
   const layers = useMemo(
     () => [
-      // Density — relative scale (visible when toggled on)
-      new H3HexagonLayer<HexAggregate>({
-        id: "deals-density",
-        data: hexes,
-        getHexagon: (d) => d.hex,
-        getFillColor: (d) => interpolate(DENSITY_STOPS, Math.sqrt(d.count / maxCount)),
-        extruded: false,
-        stroked: false,
-        filled: true,
-        pickable: true,
-        visible: layerVisibility.density,
-        updateTriggers: { getFillColor: maxCount },
-      }),
-      // Price — absolute scale (visible when toggled on, drawn on top).
-      // sqrt() on the normalized value gives the cheap end more of the
-      // gradient — without it, ~70% of hexes cluster at the pale end and
-      // can't be visually distinguished from each other.
       new H3HexagonLayer<HexAggregate>({
         id: "deals-price",
         data: hexes,
         getHexagon: (d) => d.hex,
         getFillColor: (d) =>
-          interpolate(PRICE_STOPS, Math.sqrt((d.avgPrice - priceMin) / priceRange)),
+          interpolate(PRICE_STOPS, (d.avgPrice - priceMin) / priceRange),
         extruded: false,
         stroked: false,
         filled: true,
         pickable: true,
-        visible: layerVisibility.price,
+        visible: showHeatmap,
         updateTriggers: { getFillColor: [priceMin, priceMax] },
       }),
     ],
-    [hexes, maxCount, layerVisibility, priceMin, priceMax, priceRange],
+    [hexes, showHeatmap, priceMin, priceMax, priceRange],
   );
 
   // Auto-fit — first fit is instant; subsequent fits animate.
