@@ -115,8 +115,13 @@ const CarouselContent = React.forwardRef<
   React.HTMLAttributes<HTMLDivElement>
 >(function CarouselContent({ className, ...props }, ref) {
   const { carouselRef, orientation } = useCarousel();
+  // `overflow-x-clip` (not `overflow-hidden`) so card drop-shadows on slides
+  // aren't sliced off at the top/bottom of the viewport. `clip` hides
+  // horizontal overflow without establishing a scroll container — Embla
+  // doesn't need one (slides are positioned via transforms) — and the
+  // default `overflow-y: visible` lets shadows bleed vertically.
   return (
-    <div ref={carouselRef} className="overflow-hidden">
+    <div ref={carouselRef} className="overflow-x-clip">
       <div
         ref={ref}
         className={cn("flex", orientation === "horizontal" ? "-ml-3" : "-mt-3 flex-col", className)}

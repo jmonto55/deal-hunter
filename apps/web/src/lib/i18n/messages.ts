@@ -81,6 +81,8 @@ const es = {
   "map.propertyPlural": "propiedades",
   "map.avg": "promedio",
   "map.fitToFilters": "Ajustar al filtro",
+  "map.zoomIn": "Acercar",
+  "map.zoomOut": "Alejar",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -147,6 +149,8 @@ const en: Record<keyof typeof es, string> = {
   "map.propertyPlural": "properties",
   "map.avg": "avg",
   "map.fitToFilters": "Fit to filter",
+  "map.zoomIn": "Zoom in",
+  "map.zoomOut": "Zoom out",
 };
 
 export type MessageKey = keyof typeof es;

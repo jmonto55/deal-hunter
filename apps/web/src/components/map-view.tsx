@@ -2,11 +2,11 @@
 
 import { useTheme } from "next-themes";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Map } from "react-map-gl/maplibre";
+import { Map, AttributionControl } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator, WebMercatorViewport, type PickingInfo } from "@deck.gl/core";
-import { Maximize2 } from "lucide-react";
+import { Maximize2, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/provider";
 
@@ -30,6 +30,10 @@ const INITIAL_VIEW_STATE = {
 const FIT_PADDING = 60;
 const FIT_MAX_ZOOM = 14;
 const FLY_DURATION_MS = 900;
+const ZOOM_STEP = 1;
+const ZOOM_DURATION_MS = 250;
+const MIN_ZOOM = 0;
+const MAX_ZOOM = 22;
 
 // ── Price color scale ─────────────────────────────────────────────────────
 type RGBA = [number, number, number, number];
@@ -177,6 +181,18 @@ export function MapView({
     [fitBounds],
   );
 
+  const zoomBy = useCallback((delta: number) => {
+    setViewState((prev) => {
+      const current = (prev.zoom as number | undefined) ?? INITIAL_VIEW_STATE.zoom;
+      return {
+        ...prev,
+        zoom: Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, current + delta)),
+        transitionDuration: ZOOM_DURATION_MS,
+        transitionInterpolator: new FlyToInterpolator(),
+      };
+    });
+  }, []);
+
   // Auto-fit on bounds change. First fit is instant; subsequent fits animate.
   // Skips if the bounds haven't actually changed (e.g. toggling a filter that
   // doesn't affect extent).
@@ -199,24 +215,55 @@ export function MapView({
         onHover={(info) => setHover(info.object ? info : null)}
         onClick={(info) => onHexClick?.(info.object ? info.object.hex : null)}
       >
-        <Map key={styleUrl} mapStyle={styleUrl} attributionControl={{ compact: true }} />
+        <Map key={styleUrl} mapStyle={styleUrl} attributionControl={false}>
+          {/* Attribution is required by CARTO + OSM licenses; we move it to
+           * bottom-left (away from the control stack) and force `compact`
+           * so it's a small `i` button that expands on click. Visual
+           * weight is tuned down further in globals.css. */}
+          <AttributionControl compact position="bottom-left" />
+        </Map>
       </DeckGL>
 
-      {/* Fit-to-filter FAB. `bg-bg-elevated` is brighter than the basemap
-       * in both themes (vs `bg-bg-base` which matches the dark map exactly
-       * and disappears), and the rounded-full + drop-shadow gives the
-       * floating-above-the-map feel of standard map controls. */}
-      <Button
-        variant="outline"
-        size="icon"
-        onClick={() => flyToBounds(FLY_DURATION_MS)}
-        disabled={!fitBounds}
-        aria-label={t("map.fitToFilters")}
-        title={t("map.fitToFilters")}
-        className="absolute top-3 right-3 z-10 rounded-full bg-bg-elevated/95 backdrop-blur-sm shadow-md hover:bg-bg-elevated"
-      >
-        <Maximize2 />
-      </Button>
+      {/* Map control stack — zoom in/out + fit-to-filter, bottom-right.
+       * `bottom-2.5 right-2.5` (10px) mirrors MapLibre's default control
+       * margin so the stack's bottom edge lines up with the attribution
+       * at bottom-left for symmetric corner placement. `bg-bg-elevated`
+       * is brighter than the basemap in both themes (vs `bg-bg-base`
+       * which matches the dark map exactly and disappears); rounded-full
+       * + drop-shadow give the floating-above-the-map feel. */}
+      <div className="absolute bottom-2.5 right-2.5 z-10 flex flex-col gap-2">
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => zoomBy(ZOOM_STEP)}
+          aria-label={t("map.zoomIn")}
+          title={t("map.zoomIn")}
+          className="rounded-full bg-bg-elevated/95 backdrop-blur-sm shadow-md hover:bg-bg-elevated"
+        >
+          <Plus />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => zoomBy(-ZOOM_STEP)}
+          aria-label={t("map.zoomOut")}
+          title={t("map.zoomOut")}
+          className="rounded-full bg-bg-elevated/95 backdrop-blur-sm shadow-md hover:bg-bg-elevated"
+        >
+          <Minus />
+        </Button>
+        <Button
+          variant="outline"
+          size="icon"
+          onClick={() => flyToBounds(FLY_DURATION_MS)}
+          disabled={!fitBounds}
+          aria-label={t("map.fitToFilters")}
+          title={t("map.fitToFilters")}
+          className="rounded-full bg-bg-elevated/95 backdrop-blur-sm shadow-md hover:bg-bg-elevated"
+        >
+          <Maximize2 />
+        </Button>
+      </div>
 
       {hover?.object && (
         <div
