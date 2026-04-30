@@ -14,6 +14,7 @@
     "db:push": "drizzle-kit push",
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
@@ -24,6 +25,7 @@
     "@deal-hunter/tsconfig": "*",
     "dotenv": "^16.4.7",
     "drizzle-kit": "^0.31.10",
+    "tsx": "^4.21.0",
     "typescript": "^5.7.2"
   }
 }

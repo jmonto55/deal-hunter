@@ -36,11 +36,11 @@
   /* Neumorphism shadow pair (light surface → bright highlight, soft shadow) */
   --neu-light: rgba(255, 255, 255, 0.95);
   --neu-dark: rgba(163, 177, 198, 0.55);
-  /* Slider thumb — dark in light mode for contrast */
-  --slider-thumb: #0f1115;
+  /* Slider — neutral gray accent (not brand-blue), softened thumb */
+  --slider-thumb: #475569;
   --slider-thumb-ring: rgba(15, 17, 21, 0.12);
   --slider-track: rgba(15, 17, 21, 0.1);
-  --slider-range: var(--action);
+  --slider-range: #cbd5e1;
 }
 
 .dark {
@@ -58,11 +58,11 @@
   /* Inverted shadow pair on dark surface */
   --neu-light: rgba(255, 255, 255, 0.04);
   --neu-dark: rgba(0, 0, 0, 0.55);
-  /* Slider thumb — light in dark mode for contrast */
+  /* Slider — neutral gray accent (not brand-blue), bright thumb on dark */
   --slider-thumb: #ffffff;
   --slider-thumb-ring: rgba(255, 255, 255, 0.18);
   --slider-track: rgba(255, 255, 255, 0.1);
-  --slider-range: var(--action);
+  --slider-range: #4b5563;
 }
 
 @theme inline {

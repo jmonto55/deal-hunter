@@ -1,13 +1,36 @@
-import { FilterPanel } from "@/components/filter-panel";
-import { MapView } from "@/components/map-view";
+import { getDb, deals } from "@deal-hunter/db";
+import { DealsExplorer, type DealPoint } from "@/components/deals-explorer";
 
-export default function HomePage() {
-  return (
-    <main className="flex-1 flex flex-col md:flex-row min-h-0">
-      <FilterPanel />
-      <section className="relative flex-1 min-h-[60vh] md:min-h-0">
-        <MapView />
-      </section>
-    </main>
-  );
+export const dynamic = "force-dynamic";
+
+async function getDealPoints(): Promise<DealPoint[]> {
+  const db = getDb();
+  const rows = await db
+    .select({
+      lat: deals.latitude,
+      lng: deals.longitude,
+      price: deals.priceCop,
+      area: deals.areaBuiltM2,
+      bedrooms: deals.bedrooms,
+      propertyType: deals.propertyType,
+      neighborhood: deals.neighborhood,
+    })
+    .from(deals);
+  return rows.map((r) => ({
+    lat: Number(r.lat),
+    lng: Number(r.lng),
+    price: r.price,
+    area: r.area,
+    bedrooms: r.bedrooms,
+    propertyType: r.propertyType,
+    neighborhood: r.neighborhood ?? "—",
+  }));
+}
+
+export default async function HomePage() {
+  const points = await getDealPoints().catch((err) => {
+    console.error("[home] getDealPoints failed:", err);
+    return [] as DealPoint[];
+  });
+  return <DealsExplorer points={points} />;
 }
