@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState, type ReactNode } from "react";
+import AutoHeight from "embla-carousel-auto-height";
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
@@ -218,10 +219,8 @@ export function FilterPanel(props: {
         bg-bg-card
       "
     >
-      {/* Mobile: header + tab strip + horizontal carousel.
-       * Tighter bottom padding so the gap between the filter card and the
-       * heatmap legend matches the gap between the tab strip and the card. */}
-      <div className="md:hidden pt-4 px-4 pb-1 space-y-4">
+      {/* Mobile: header + tab strip + horizontal carousel. */}
+      <div className="md:hidden p-4 space-y-4">
         {header}
         <MobileFilterCarousel cards={mobileCards} />
       </div>
@@ -298,11 +297,15 @@ function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
           );
         })}
       </nav>
-      <Carousel opts={{ align: "start" }} setApi={setApi}>
-        {/* items-start lets each slide take its natural content height
-         * instead of stretching to match the tallest, so a short card
-         * (Precio) doesn't get padded out to a chip-wall card's height. */}
-        <CarouselContent className="items-start">
+      <Carousel
+        opts={{ align: "start" }}
+        plugins={[AutoHeight()]}
+        setApi={setApi}
+      >
+        {/* AutoHeight resizes the viewport to match the active slide so a
+         * short card (Precio) doesn't reserve a chip-wall card's worth of
+         * empty space below it. */}
+        <CarouselContent className="items-start transition-[height] duration-200">
           {cards.map((card) => (
             <CarouselItem key={card.key}>
               <FilterCardLayout label={card.label}>{card.node}</FilterCardLayout>
