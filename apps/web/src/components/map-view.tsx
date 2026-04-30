@@ -10,8 +10,9 @@ import { Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/provider";
 
-export type HexAggregate = { hex: string; count: number; avgPrice: number };
+export type HexAggregate = { hex: string; count: number; avgPrice: number; avgDiscount: number | null };
 export type LngLatBounds = [[number, number], [number, number]];
+export type LayerVisibility = { price: boolean; discount: boolean };
 
 // `voyager` is Carto's detailed light style — shows street names, parks,
 // water bodies, neighborhood boundaries. `dark-matter` stays for dark mode
@@ -59,6 +60,26 @@ export const PRICE_STOPS: Array<[number, RGBA]> = [
   [1.0,  [165, 0,   38,  250]], // dark red     #a50026
 ];
 
+/**
+ * Divergent teal-neutral-coral scale for discount vs. market.
+ * t=0 → strong over-market (coral/red), t=0.5 → neutral (slate), t=1 → strong discount (teal).
+ * Maps [-25, +25] pct range to [0, 1].
+ */
+export const DISCOUNT_STOPS: Array<[number, RGBA]> = [
+  [0.0,  [220, 38,  38,  220]], // coral-red  (−25%)
+  [0.2,  [248, 113, 113, 225]], // light coral (−15%)
+  [0.38, [252, 165, 165, 220]], // pale coral  ( −5%)
+  [0.5,  [148, 163, 184, 190]], // slate-gray  (  0%)
+  [0.62, [94,  234, 212, 220]], // pale teal   ( +5%)
+  [0.8,  [20,  184, 166, 225]], // teal        (+15%)
+  [1.0,  [17,  94,  89,  230]], // dark teal   (+25%)
+];
+
+function interpolateDiscount(discountPct: number): RGBA {
+  const t = Math.max(0, Math.min(1, (discountPct + 25) / 50));
+  return interpolate(DISCOUNT_STOPS, t);
+}
+
 function interpolate(stops: Array<[number, RGBA]>, t: number): RGBA {
   if (t <= 0) return stops[0]![1];
   if (t >= 1) return stops.at(-1)![1];
@@ -101,12 +122,14 @@ export function MapView({
   fitBounds,
   priceMin,
   priceMax,
+  layerVisibility,
   onHexClick,
 }: {
   hexes: HexAggregate[];
   fitBounds: LngLatBounds | null;
   priceMin: number;
   priceMax: number;
+  layerVisibility: LayerVisibility;
   onHexClick?: (hex: string | null) => void;
 }) {
   const t = useT();
@@ -120,6 +143,11 @@ export function MapView({
   const styleUrl = resolvedTheme === "light" ? STYLE_LIGHT : STYLE_DARK;
   const priceRange = Math.max(1, priceMax - priceMin);
 
+  const discountHexes = useMemo(
+    () => hexes.filter((d): d is HexAggregate & { avgDiscount: number } => d.avgDiscount !== null),
+    [hexes],
+  );
+
   const layers = useMemo(
     () => [
       new H3HexagonLayer<HexAggregate>({
@@ -127,9 +155,6 @@ export function MapView({
         data: hexes,
         getHexagon: (d) => d.hex,
         // sqrt() stretches the cheap-mid range across more of the gradient.
-        // Without it, ~80% of hexes cluster at the green end and become
-        // visually indistinguishable; with it, that band spreads across
-        // green → lime → yellow → amber for real differentiation.
         getFillColor: (d) =>
           interpolate(
             PRICE_STOPS,
@@ -139,10 +164,23 @@ export function MapView({
         stroked: false,
         filled: true,
         pickable: true,
+        visible: layerVisibility.price,
         updateTriggers: { getFillColor: [priceMin, priceMax] },
       }),
+      new H3HexagonLayer<HexAggregate & { avgDiscount: number }>({
+        id: "deals-discount",
+        data: discountHexes,
+        getHexagon: (d) => d.hex,
+        getFillColor: (d) => interpolateDiscount(d.avgDiscount),
+        extruded: false,
+        stroked: false,
+        filled: true,
+        pickable: true,
+        visible: layerVisibility.discount,
+        updateTriggers: {},
+      }),
     ],
-    [hexes, priceMin, priceMax, priceRange],
+    [hexes, discountHexes, priceMin, priceMax, priceRange, layerVisibility],
   );
 
   /**
@@ -231,9 +269,25 @@ export function MapView({
             {hover.object.count}{" "}
             {hover.object.count === 1 ? t("map.propertySingular") : t("map.propertyPlural")}
           </div>
-          <div className="text-fg-muted">
-            {t("map.avg")} {formatCOP(hover.object.avgPrice)}
-          </div>
+          {layerVisibility.price && (
+            <div className="text-fg-muted">
+              {t("map.avg")} {formatCOP(hover.object.avgPrice)}
+            </div>
+          )}
+          {layerVisibility.discount && (
+            hover.object.avgDiscount !== null ? (
+              <div
+                style={{
+                  color: hover.object.avgDiscount >= 0 ? "#14b8a6" : "#ef4444",
+                }}
+              >
+                {hover.object.avgDiscount >= 0 ? "+" : ""}
+                {hover.object.avgDiscount}% {t("map.discount")}
+              </div>
+            ) : (
+              <div className="text-fg-muted">{t("map.noDiscount")}</div>
+            )
+          )}
         </div>
       )}
     </div>

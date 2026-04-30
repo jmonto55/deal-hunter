@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
 import { HeatmapLegend } from "@/components/heatmap-legend";
-import { MapView, type HexAggregate, type LngLatBounds } from "@/components/map-view";
+import { MapView, type HexAggregate, type LayerVisibility, type LngLatBounds } from "@/components/map-view";
 import { MatchCount } from "@/components/match-count";
 import { PropertyDrawer } from "@/components/property-drawer";
 import { useT } from "@/lib/i18n/provider";
@@ -18,6 +18,7 @@ export type DealPoint = {
   bathrooms: number;
   propertyType: string;
   neighborhood: string;
+  discountPct: number | null;
 };
 
 export type Filters = {
@@ -32,22 +33,41 @@ const H3_RESOLUTION = 10; // ~65m edge — block / building-cluster scale
 const FIT_DEBOUNCE_MS = 300;
 
 function aggregateToHexes(points: DealPoint[], res: number): HexAggregate[] {
-  const buckets = new Map<string, { count: number; sum: number }>();
+  const buckets = new Map<
+    string,
+    { count: number; sum: number; sumDiscount: number; countDiscount: number }
+  >();
   for (const p of points) {
     const cell = latLngToCell(p.lat, p.lng, res);
     const b = buckets.get(cell);
     if (b) {
       b.count++;
       b.sum += p.price;
+      if (p.discountPct !== null) {
+        b.sumDiscount += p.discountPct;
+        b.countDiscount++;
+      }
     } else {
-      buckets.set(cell, { count: 1, sum: p.price });
+      buckets.set(cell, {
+        count: 1,
+        sum: p.price,
+        sumDiscount: p.discountPct ?? 0,
+        countDiscount: p.discountPct !== null ? 1 : 0,
+      });
     }
   }
-  return Array.from(buckets, ([hex, b]) => ({
-    hex,
-    count: b.count,
-    avgPrice: Math.round(b.sum / b.count),
-  }));
+  return Array.from(buckets, ([hex, b]) => {
+    const avgDiscount =
+      b.countDiscount > 0
+        ? Math.round((b.sumDiscount / b.countDiscount) * 10) / 10
+        : null;
+    return {
+      hex,
+      count: b.count,
+      avgPrice: Math.round(b.sum / b.count),
+      avgDiscount,
+    };
+  });
 }
 
 function computeBounds(points: DealPoint[]): LngLatBounds | null {
@@ -122,6 +142,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [bedroomBuckets, setBedroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [bathroomBuckets, setBathroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
+  const [minDiscount, setMinDiscount] = useState<number>(-10);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({ price: true, discount: false });
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -138,9 +160,13 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         if (!bathroomBuckets.has(bucket)) return false;
       }
       if (neighborhoods.size > 0 && !neighborhoods.has(p.neighborhood)) return false;
+      if (minDiscount > -10) {
+        if (p.discountPct === null) return false;
+        if (p.discountPct < minDiscount) return false;
+      }
       return true;
     });
-  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, neighborhoods]);
+  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, neighborhoods, minDiscount]);
 
   const hexes = useMemo(() => aggregateToHexes(filtered, H3_RESOLUTION), [filtered]);
 
@@ -161,7 +187,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     propertyTypes.size > 0 ||
     bedroomBuckets.size > 0 ||
     bathroomBuckets.size > 0 ||
-    neighborhoods.size > 0;
+    neighborhoods.size > 0 ||
+    minDiscount > -10;
 
   const resetFilters = useCallback(() => {
     setPriceRange([priceMin, priceMax]);
@@ -170,6 +197,7 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     setBedroomBuckets(new Set());
     setBathroomBuckets(new Set());
     setNeighborhoods(new Set());
+    setMinDiscount(-10);
   }, [priceMin, priceMax, areaMin, areaMax]);
 
   // ── Property drawer ────────────────────────────────────────────────────
@@ -216,6 +244,10 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
           allNeighborhoods={allNeighborhoods}
           neighborhoods={neighborhoods}
           onNeighborhoodsChange={setNeighborhoods}
+          minDiscount={minDiscount}
+          onMinDiscountChange={setMinDiscount}
+          layerVisibility={layerVisibility}
+          onLayerVisibilityChange={setLayerVisibility}
           hasActiveFilters={hasActiveFilters}
           onReset={resetFilters}
         />
@@ -235,6 +267,7 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
               fitBounds={fitBounds}
               priceMin={priceMin}
               priceMax={priceMax}
+              layerVisibility={layerVisibility}
               onHexClick={setSelectedHex}
             />
           </div>

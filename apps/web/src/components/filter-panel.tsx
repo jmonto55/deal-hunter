@@ -6,6 +6,8 @@ import { X } from "lucide-react";
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
+import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import {
   Carousel,
   CarouselContent,
@@ -15,6 +17,7 @@ import {
 import { cn } from "@/lib/utils";
 import { useLocale } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/messages";
+import type { LayerVisibility } from "@/components/map-view";
 
 /** Map property-type enum values to their translation keys. */
 const PROPERTY_TYPE_KEY: Record<string, MessageKey> = {
@@ -60,6 +63,10 @@ export function FilterPanel(props: {
   allNeighborhoods: string[];
   neighborhoods: ReadonlySet<string>;
   onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
+  minDiscount: number;
+  onMinDiscountChange: (next: number) => void;
+  layerVisibility: LayerVisibility;
+  onLayerVisibilityChange: (next: LayerVisibility) => void;
   hasActiveFilters: boolean;
   onReset: () => void;
 }) {
@@ -84,6 +91,10 @@ export function FilterPanel(props: {
     allNeighborhoods,
     neighborhoods,
     onNeighborhoodsChange,
+    minDiscount,
+    onMinDiscountChange,
+    layerVisibility,
+    onLayerVisibilityChange,
     hasActiveFilters,
     onReset,
   } = props;
@@ -170,20 +181,60 @@ export function FilterPanel(props: {
       ? `${t("filter.neighborhood")} (${neighborhoods.size})`
       : t("filter.neighborhood");
 
+  const discountNode = (
+    <div className="space-y-3">
+      <Slider
+        min={-10}
+        max={30}
+        step={1}
+        value={[minDiscount]}
+        onValueChange={([v]) => onMinDiscountChange(v!)}
+      />
+      <div className="flex justify-between text-label text-fg-muted">
+        <span>
+          {minDiscount <= -10
+            ? t("filter.discountAny")
+            : `≥${minDiscount >= 0 ? "+" : ""}${minDiscount}%`}
+        </span>
+        <span>+30%</span>
+      </div>
+    </div>
+  );
+
+  const layersNode = (
+    <div className="space-y-3">
+      <LayerToggle
+        label={t("filter.layerPrice")}
+        checked={layerVisibility.price}
+        onCheckedChange={(v) => onLayerVisibilityChange({ ...layerVisibility, price: v })}
+        gradient="linear-gradient(to right, #006837, #a6d96a, #fee08b, #f46d43, #a50026)"
+      />
+      <LayerToggle
+        label={t("filter.layerDiscount")}
+        checked={layerVisibility.discount}
+        onCheckedChange={(v) => onLayerVisibilityChange({ ...layerVisibility, discount: v })}
+        gradient="linear-gradient(to right, #dc2626, #94a3b8, #0d9488)"
+      />
+    </div>
+  );
+
   // Desktop has bedrooms and bathrooms as two separate cards.
   const desktopCards: FilterCard[] = [
     { key: "price", label: t("filter.price"), node: priceNode },
     { key: "area", label: t("filter.area"), node: areaNode },
+    { key: "discount", label: t("filter.discount"), node: discountNode },
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
     { key: "bedrooms", label: t("filter.bedrooms"), node: bedroomsChips },
     { key: "bathrooms", label: t("filter.bathrooms"), node: bathroomsChips },
     { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
+    { key: "layers", label: t("filter.layers"), node: layersNode },
   ];
 
   // Mobile combines bedrooms + bathrooms into one carousel card.
   const mobileCards: FilterCard[] = [
     { key: "price", label: t("filter.price"), node: priceNode },
     { key: "area", label: t("filter.area"), node: areaNode },
+    { key: "discount", label: t("filter.discount"), node: discountNode },
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
     {
       key: "rooms",
@@ -196,6 +247,7 @@ export function FilterPanel(props: {
       ),
     },
     { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
+    { key: "layers", label: t("filter.layers"), node: layersNode },
   ];
 
   return (
@@ -361,6 +413,31 @@ function SubSection({ label, children }: { label: string; children: ReactNode })
     <div className="space-y-2">
       <div className="text-label font-medium text-fg-muted">{label}</div>
       {children}
+    </div>
+  );
+}
+
+function LayerToggle({
+  label,
+  checked,
+  onCheckedChange,
+  gradient,
+}: {
+  label: string;
+  checked: boolean;
+  onCheckedChange: (v: boolean) => void;
+  gradient: string;
+}) {
+  return (
+    <div className="flex items-center gap-3">
+      <Switch checked={checked} onCheckedChange={onCheckedChange} />
+      <div className="flex-1 space-y-1.5">
+        <div className="text-label font-medium text-fg leading-none">{label}</div>
+        <div
+          className="h-1.5 w-full rounded-full transition-opacity duration-150"
+          style={{ background: gradient, opacity: checked ? 1 : 0.3 }}
+        />
+      </div>
     </div>
   );
 }

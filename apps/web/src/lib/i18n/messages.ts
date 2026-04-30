@@ -76,11 +76,25 @@ const es = {
   "amenity.playground": "Zona infantil",
   "amenity.bbq": "BBQ",
 
+  // Discount filter + layer toggles
+  "filter.discount": "Descuento",
+  "filter.discountAny": "Cualquier",
+  "filter.layers": "Capas del mapa",
+  "filter.layerPrice": "Precio",
+  "filter.layerDiscount": "Descuento",
+
   // Map tooltip + controls
   "map.propertySingular": "propiedad",
   "map.propertyPlural": "propiedades",
   "map.avg": "promedio",
+  "map.discount": "descuento vs. mercado",
+  "map.noDiscount": "sin dato",
   "map.fitToFilters": "Ajustar al filtro",
+
+  // Discount legend
+  "legend.discountTitle": "Descuento vs. Mercado",
+  "legend.overMarket": "Sobre precio",
+  "legend.belowMarket": "Bajo precio",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -143,10 +157,22 @@ const en: Record<keyof typeof es, string> = {
   "amenity.playground": "Playground",
   "amenity.bbq": "BBQ",
 
+  "filter.discount": "Discount",
+  "filter.discountAny": "Any",
+  "filter.layers": "Map layers",
+  "filter.layerPrice": "Price",
+  "filter.layerDiscount": "Discount",
+
   "map.propertySingular": "property",
   "map.propertyPlural": "properties",
   "map.avg": "avg",
+  "map.discount": "discount vs. market",
+  "map.noDiscount": "no data",
   "map.fitToFilters": "Fit to filter",
+
+  "legend.discountTitle": "Discount vs. Market",
+  "legend.overMarket": "Over market",
+  "legend.belowMarket": "Below market",
 };
 
 export type MessageKey = keyof typeof es;
