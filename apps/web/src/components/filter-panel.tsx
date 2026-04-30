@@ -1,22 +1,31 @@
 "use client";
 
+import { useEffect, useState, type ReactNode } from "react";
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
-import { Switch } from "@/components/ui/switch";
-import { PRICE_STOPS } from "@/components/map-view";
+import {
+  Carousel,
+  CarouselContent,
+  CarouselItem,
+  type CarouselApi,
+} from "@/components/ui/carousel";
+import { cn } from "@/lib/utils";
+import { useLocale } from "@/lib/i18n/provider";
+import type { MessageKey } from "@/lib/i18n/messages";
 
-const PROPERTY_TYPE_LABELS: Record<string, string> = {
-  apartamento: "Apartamento",
-  casa: "Casa",
-  apartaestudio: "Apartaestudio",
-  penthouse: "Penthouse",
-  lote: "Lote",
-  oficina: "Oficina",
-  local: "Local",
-  bodega: "Bodega",
-  finca: "Finca",
-  casa_campestre: "Casa campestre",
+/** Map property-type enum values to their translation keys. */
+const PROPERTY_TYPE_KEY: Record<string, MessageKey> = {
+  apartamento: "propertyType.apartamento",
+  casa: "propertyType.casa",
+  apartaestudio: "propertyType.apartaestudio",
+  penthouse: "propertyType.penthouse",
+  lote: "propertyType.lote",
+  oficina: "propertyType.oficina",
+  local: "propertyType.local",
+  bodega: "propertyType.bodega",
+  finca: "propertyType.finca",
+  casa_campestre: "propertyType.casaCampestre",
 };
 
 function toggleSet<T>(prev: ReadonlySet<T>, value: T): Set<T> {
@@ -26,43 +35,9 @@ function toggleSet<T>(prev: ReadonlySet<T>, value: T): Set<T> {
   return next;
 }
 
-function formatCOPShort(value: number) {
-  if (value >= 1_000_000_000) return `$${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `$${Math.round(value / 1_000_000)}M`;
-  return `$${value.toLocaleString("en-US")}`;
-}
+type FilterCard = { key: string; label: string; node: ReactNode };
 
-function stopsToCssGradient(stops: Array<[number, [number, number, number, number]]>) {
-  // Solid colors (alpha=1) for the legend so the bar reads cleanly even
-  // when the layer's actual rendering uses lower alpha for blending.
-  return stops
-    .map(([t, [r, g, b]]) => `rgb(${r}, ${g}, ${b}) ${t * 100}%`)
-    .join(", ");
-}
-
-export function FilterPanel({
-  total,
-  matched,
-  priceMin,
-  priceMax,
-  priceRange,
-  onPriceRangeChange,
-  areaMin,
-  areaMax,
-  areaRange,
-  onAreaRangeChange,
-  allPropertyTypes,
-  propertyTypes,
-  onPropertyTypesChange,
-  bedroomBuckets,
-  onBedroomBucketsChange,
-  bedroomOptions,
-  allNeighborhoods,
-  neighborhoods,
-  onNeighborhoodsChange,
-  showHeatmap,
-  onShowHeatmapChange,
-}: {
+export function FilterPanel(props: {
   total: number;
   matched: number;
   priceMin: number;
@@ -79,187 +54,287 @@ export function FilterPanel({
   bedroomBuckets: ReadonlySet<number>;
   onBedroomBucketsChange: (next: ReadonlySet<number>) => void;
   bedroomOptions: readonly number[];
+  bathroomBuckets: ReadonlySet<number>;
+  onBathroomBucketsChange: (next: ReadonlySet<number>) => void;
+  bathroomOptions: readonly number[];
   allNeighborhoods: string[];
   neighborhoods: ReadonlySet<string>;
   onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
-  showHeatmap: boolean;
-  onShowHeatmapChange: (next: boolean) => void;
 }) {
+  const {
+    total,
+    matched,
+    priceMin,
+    priceMax,
+    priceRange,
+    onPriceRangeChange,
+    areaMin,
+    areaMax,
+    areaRange,
+    onAreaRangeChange,
+    allPropertyTypes,
+    propertyTypes,
+    onPropertyTypesChange,
+    bedroomBuckets,
+    onBedroomBucketsChange,
+    bedroomOptions,
+    bathroomBuckets,
+    onBathroomBucketsChange,
+    bathroomOptions,
+    allNeighborhoods,
+    neighborhoods,
+    onNeighborhoodsChange,
+  } = props;
+
+  const { t, fmt } = useLocale();
+
+  // ── Reusable filter section nodes ────────────────────────────────────────
+  const priceNode = (
+    <PriceRangeFilter
+      min={priceMin}
+      max={priceMax}
+      value={priceRange}
+      onChange={onPriceRangeChange}
+    />
+  );
+
+  const areaNode = (
+    <AreaRangeFilter
+      min={areaMin}
+      max={areaMax}
+      value={areaRange}
+      onChange={onAreaRangeChange}
+    />
+  );
+
+  const propertyTypeNode = (
+    <div className="flex flex-wrap gap-2">
+      {allPropertyTypes.map((type) => (
+        <Chip
+          key={type}
+          selected={propertyTypes.has(type)}
+          onClick={() => onPropertyTypesChange(toggleSet(propertyTypes, type))}
+        >
+          {PROPERTY_TYPE_KEY[type] ? t(PROPERTY_TYPE_KEY[type]!) : type}
+        </Chip>
+      ))}
+    </div>
+  );
+
+  const bedroomsChips = (
+    <div className="flex flex-wrap gap-2">
+      {bedroomOptions.map((n) => (
+        <Chip
+          key={n}
+          selected={bedroomBuckets.has(n)}
+          onClick={() => onBedroomBucketsChange(toggleSet(bedroomBuckets, n))}
+        >
+          {n === 4 ? "4+" : String(n)}
+        </Chip>
+      ))}
+    </div>
+  );
+
+  const bathroomsChips = (
+    <div className="flex flex-wrap gap-2">
+      {bathroomOptions.map((n) => (
+        <Chip
+          key={n}
+          selected={bathroomBuckets.has(n)}
+          onClick={() => onBathroomBucketsChange(toggleSet(bathroomBuckets, n))}
+        >
+          {n === 4 ? "4+" : String(n)}
+        </Chip>
+      ))}
+    </div>
+  );
+
+  const neighborhoodNode = (
+    <div className="flex flex-wrap gap-2">
+      {allNeighborhoods.map((n) => (
+        <Chip
+          key={n}
+          selected={neighborhoods.has(n)}
+          onClick={() => onNeighborhoodsChange(toggleSet(neighborhoods, n))}
+        >
+          {n}
+        </Chip>
+      ))}
+    </div>
+  );
+
+  const neighborhoodLabel =
+    neighborhoods.size > 0
+      ? `${t("filter.neighborhood")} (${neighborhoods.size})`
+      : t("filter.neighborhood");
+
+  // Desktop has bedrooms and bathrooms as two separate cards.
+  const desktopCards: FilterCard[] = [
+    { key: "price", label: t("filter.price"), node: priceNode },
+    { key: "area", label: t("filter.area"), node: areaNode },
+    { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
+    { key: "bedrooms", label: t("filter.bedrooms"), node: bedroomsChips },
+    { key: "bathrooms", label: t("filter.bathrooms"), node: bathroomsChips },
+    { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
+  ];
+
+  // Mobile combines bedrooms + bathrooms into one carousel card.
+  const mobileCards: FilterCard[] = [
+    { key: "price", label: t("filter.price"), node: priceNode },
+    { key: "area", label: t("filter.area"), node: areaNode },
+    { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
+    {
+      key: "rooms",
+      label: t("filter.rooms"),
+      node: (
+        <div className="space-y-5">
+          <SubSection label={t("filter.bedrooms")}>{bedroomsChips}</SubSection>
+          <SubSection label={t("filter.bathrooms")}>{bathroomsChips}</SubSection>
+        </div>
+      ),
+    },
+    { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
+  ];
+
+  const header = (
+    <header className="space-y-1.5">
+      <h2 className="text-h3 font-semibold text-fg leading-tight">
+        {t("panel.heading")}
+      </h2>
+      <p className="text-label text-fg-muted">
+        <span className="text-fg font-semibold">{fmt(matched)}</span>
+        {` ${t("panel.matchSeparator")} `}
+        <span className="text-fg font-semibold">{fmt(total)}</span>
+        {` ${t("panel.matchSuffix")}`}
+      </p>
+    </header>
+  );
+
   return (
     <aside
       className="
         w-full md:w-80 lg:w-96 shrink-0
         border-b md:border-b-0 md:border-r border-border
         bg-bg-card
-        p-6
-        md:max-h-[calc(100vh-3.5rem)] md:overflow-y-auto
       "
     >
-      <div className="space-y-6">
-        <header className="space-y-1">
-          <h2 className="text-h3 font-semibold text-fg">Medellín Properties</h2>
-          <p className="text-label text-fg-muted">
-            <span className="text-fg font-semibold">{matched.toLocaleString()}</span>
-            {" of "}
-            <span className="text-fg font-semibold">{total.toLocaleString()}</span>
-            {" properties match filters"}
-          </p>
-        </header>
+      {/* Mobile: header + tab strip + horizontal carousel */}
+      <div className="md:hidden p-4 space-y-4">
+        {header}
+        <MobileFilterCarousel cards={mobileCards} />
+      </div>
 
-        <Card>
-          <Section label="Heatmap">
-            <LayerToggle
-              label="Price"
-              description="Cheap → expensive per area"
-              checked={showHeatmap}
-              onCheckedChange={onShowHeatmapChange}
-              gradient={stopsToCssGradient(PRICE_STOPS)}
-              minLabel={formatCOPShort(priceMin)}
-              maxLabel={formatCOPShort(priceMax)}
-            />
-          </Section>
-        </Card>
-
-        <Card>
-          <PriceRangeFilter
-            min={priceMin}
-            max={priceMax}
-            value={priceRange}
-            onChange={onPriceRangeChange}
-          />
-        </Card>
-
-        <Card>
-          <AreaRangeFilter
-            min={areaMin}
-            max={areaMax}
-            value={areaRange}
-            onChange={onAreaRangeChange}
-          />
-        </Card>
-
-        <Section label="Property type">
-          <div className="flex flex-wrap gap-2">
-            {allPropertyTypes.map((t) => (
-              <Chip
-                key={t}
-                selected={propertyTypes.has(t)}
-                onClick={() => onPropertyTypesChange(toggleSet(propertyTypes, t))}
-              >
-                {PROPERTY_TYPE_LABELS[t] ?? t}
-              </Chip>
+      {/* Desktop: header + vertical stack */}
+      <div className="hidden md:block p-5 md:max-h-[calc(100vh-3.5rem)] md:overflow-y-auto">
+        <div className="space-y-6">
+          {header}
+          <div className="space-y-4">
+            {desktopCards.map((card) => (
+              <FilterCardLayout key={card.key} label={card.label}>
+                {card.node}
+              </FilterCardLayout>
             ))}
           </div>
-        </Section>
-
-        <Section label="Bedrooms">
-          <div className="flex flex-wrap gap-2">
-            {bedroomOptions.map((n) => (
-              <Chip
-                key={n}
-                selected={bedroomBuckets.has(n)}
-                onClick={() => onBedroomBucketsChange(toggleSet(bedroomBuckets, n))}
-              >
-                {n === 4 ? "4+" : String(n)}
-              </Chip>
-            ))}
-          </div>
-        </Section>
-
-        <Section
-          label="Neighborhood"
-          count={neighborhoods.size > 0 ? neighborhoods.size : undefined}
-        >
-          <div className="flex flex-wrap gap-2">
-            {allNeighborhoods.map((n) => (
-              <Chip
-                key={n}
-                selected={neighborhoods.has(n)}
-                onClick={() => onNeighborhoodsChange(toggleSet(neighborhoods, n))}
-              >
-                {n}
-              </Chip>
-            ))}
-          </div>
-        </Section>
+        </div>
       </div>
     </aside>
   );
 }
 
-function Card({ children }: { children: React.ReactNode }) {
+/**
+ * Mobile carousel with a tab strip for navigation. Tabs reuse the same
+ * neumorphic pressed-in pattern as the Chip primitive (raised pill at rest,
+ * pressed-in with action-blue text when selected) so the active state pulls
+ * from the design system instead of inventing a new filled-pill treatment.
+ */
+function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
+  const { t } = useLocale();
+  const [api, setApi] = useState<CarouselApi>();
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    if (!api) return;
+    const update = () => setCurrent(api.selectedScrollSnap());
+    update();
+    api.on("select", update);
+    api.on("reInit", update);
+    return () => {
+      api.off("select", update);
+      api.off("reInit", update);
+    };
+  }, [api]);
+
+  return (
+    <div className="space-y-4">
+      <nav
+        className="flex gap-2 overflow-x-auto -mx-1 px-1 py-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        role="tablist"
+        aria-label={t("panel.tabsAria")}
+      >
+        {cards.map((card, i) => {
+          const selected = current === i;
+          return (
+            <button
+              key={card.key}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              onClick={() => api?.scrollTo(i)}
+              className={cn(
+                "shrink-0 inline-flex items-center justify-center rounded-full px-3.5 py-1.5 text-label font-medium whitespace-nowrap transition-all duration-150 bg-bg-base",
+                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/40",
+                selected ? "text-action" : "text-fg-muted hover:text-fg",
+              )}
+              style={{
+                boxShadow: selected
+                  ? "var(--shadow-neu-pressed)"
+                  : "var(--shadow-neu-sm)",
+              }}
+            >
+              {card.label}
+            </button>
+          );
+        })}
+      </nav>
+      <Carousel opts={{ align: "start" }} setApi={setApi}>
+        <CarouselContent>
+          {cards.map((card) => (
+            <CarouselItem key={card.key}>
+              <FilterCardLayout label={card.label}>{card.node}</FilterCardLayout>
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+      </Carousel>
+    </div>
+  );
+}
+
+/**
+ * Filter card — neumorphic raised surface with a small label header. The
+ * `flex flex-col justify-center` pattern centers content vertically when the
+ * carousel stretches all slides to the tallest one's height (so a short card
+ * doesn't stick to the top of an oversized slide).
+ */
+function FilterCardLayout({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div
-      className="rounded-[var(--radius-neu)] p-5 bg-bg-base"
+      className="rounded-[var(--radius-neu)] p-4 bg-bg-base flex flex-col h-full"
       style={{ boxShadow: "var(--shadow-neu-sm)" }}
     >
-      {children}
-    </div>
-  );
-}
-
-function Section({
-  label,
-  count,
-  children,
-}: {
-  label: string;
-  count?: number;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="space-y-3">
-      <label className="block text-label font-medium uppercase tracking-wide text-fg-muted">
+      <div className="text-label font-medium uppercase tracking-wide text-fg-muted mb-3">
         {label}
-        {count !== undefined && (
-          <span className="ml-1.5 text-fg-subtle">({count})</span>
-        )}
-      </label>
-      {children}
+      </div>
+      <div className="flex-1 flex flex-col justify-center">{children}</div>
     </div>
   );
 }
 
-function LayerToggle({
-  label,
-  description,
-  checked,
-  onCheckedChange,
-  gradient,
-  minLabel,
-  maxLabel,
-}: {
-  label: string;
-  description: string;
-  checked: boolean;
-  onCheckedChange: (next: boolean) => void;
-  gradient: string;
-  minLabel: string;
-  maxLabel: string;
-}) {
+/** Sub-section header inside a combined card (e.g. Habitaciones / Baños). */
+function SubSection({ label, children }: { label: string; children: ReactNode }) {
   return (
     <div className="space-y-2">
-      <div className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <div className="text-body font-semibold text-fg">{label}</div>
-          <div className="text-label text-fg-subtle truncate">{description}</div>
-        </div>
-        <Switch
-          checked={checked}
-          onCheckedChange={onCheckedChange}
-          aria-label={`Toggle ${label} layer`}
-        />
-      </div>
-      <div className={checked ? "" : "opacity-40"}>
-        <div
-          className="h-2 rounded-full"
-          style={{ background: `linear-gradient(to right, ${gradient})` }}
-        />
-        <div className="mt-1.5 flex justify-between text-label text-fg-subtle">
-          <span>{minLabel}</span>
-          <span>{maxLabel}</span>
-        </div>
-      </div>
+      <div className="text-label font-medium text-fg-muted">{label}</div>
+      {children}
     </div>
   );
 }

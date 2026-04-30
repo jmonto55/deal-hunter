@@ -12,6 +12,7 @@ async function getDealPoints(): Promise<DealPoint[]> {
       price: deals.priceCop,
       area: deals.areaBuiltM2,
       bedrooms: deals.bedrooms,
+      bathrooms: deals.bathrooms,
       propertyType: deals.propertyType,
       neighborhood: deals.neighborhood,
     })
@@ -22,6 +23,7 @@ async function getDealPoints(): Promise<DealPoint[]> {
     price: r.price,
     area: r.area,
     bedrooms: r.bedrooms,
+    bathrooms: r.bathrooms,
     propertyType: r.propertyType,
     neighborhood: r.neighborhood ?? "—",
   }));

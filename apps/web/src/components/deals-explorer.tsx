@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
+import { HeatmapLegend } from "@/components/heatmap-legend";
 import { MapView, type HexAggregate, type LngLatBounds } from "@/components/map-view";
 
 export type DealPoint = {
@@ -11,6 +12,7 @@ export type DealPoint = {
   price: number;
   area: number;
   bedrooms: number;
+  bathrooms: number;
   propertyType: string;
   neighborhood: string;
 };
@@ -78,6 +80,7 @@ function deriveBounds(values: number[], step = 1) {
 }
 
 const BEDROOM_BUCKETS = [1, 2, 3, 4] as const; // 4 = "4+"
+const BATHROOM_BUCKETS = [1, 2, 3, 4] as const; // 4 = "4+"
 
 export function DealsExplorer({ points }: { points: DealPoint[] }) {
   // ── Slider bounds derived from data ────────────────────────────────────
@@ -113,8 +116,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [areaRange, setAreaRange] = useState<[number, number]>([areaMin, areaMax]);
   const [propertyTypes, setPropertyTypes] = useState<ReadonlySet<string>>(new Set());
   const [bedroomBuckets, setBedroomBuckets] = useState<ReadonlySet<number>>(new Set());
+  const [bathroomBuckets, setBathroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
-  const [showHeatmap, setShowHeatmap] = useState(true);
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -126,10 +129,14 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         const bucket = p.bedrooms >= 4 ? 4 : p.bedrooms;
         if (!bedroomBuckets.has(bucket)) return false;
       }
+      if (bathroomBuckets.size > 0) {
+        const bucket = p.bathrooms >= 4 ? 4 : p.bathrooms;
+        if (!bathroomBuckets.has(bucket)) return false;
+      }
       if (neighborhoods.size > 0 && !neighborhoods.has(p.neighborhood)) return false;
       return true;
     });
-  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, neighborhoods]);
+  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, neighborhoods]);
 
   const hexes = useMemo(() => aggregateToHexes(filtered, H3_RESOLUTION), [filtered]);
 
@@ -161,20 +168,23 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         bedroomBuckets={bedroomBuckets}
         onBedroomBucketsChange={setBedroomBuckets}
         bedroomOptions={BEDROOM_BUCKETS}
+        bathroomBuckets={bathroomBuckets}
+        onBathroomBucketsChange={setBathroomBuckets}
+        bathroomOptions={BATHROOM_BUCKETS}
         allNeighborhoods={allNeighborhoods}
         neighborhoods={neighborhoods}
         onNeighborhoodsChange={setNeighborhoods}
-        showHeatmap={showHeatmap}
-        onShowHeatmapChange={setShowHeatmap}
       />
-      <section className="relative flex-1 min-h-[60vh] md:min-h-0">
-        <MapView
-          hexes={hexes}
-          fitBounds={fitBounds}
-          showHeatmap={showHeatmap}
-          priceMin={priceMin}
-          priceMax={priceMax}
-        />
+      <section className="relative flex-1 min-h-[60vh] md:min-h-0 flex flex-col">
+        <HeatmapLegend priceMin={priceMin} priceMax={priceMax} />
+        <div className="relative flex-1 min-h-0">
+          <MapView
+            hexes={hexes}
+            fitBounds={fitBounds}
+            priceMin={priceMin}
+            priceMax={priceMax}
+          />
+        </div>
       </section>
     </main>
   );

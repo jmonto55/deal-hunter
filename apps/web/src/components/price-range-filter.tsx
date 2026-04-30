@@ -1,6 +1,7 @@
 "use client";
 
 import { Slider } from "@/components/ui/slider";
+import { useT } from "@/lib/i18n/provider";
 
 const STEP = 10_000_000;
 
@@ -21,11 +22,12 @@ export function PriceRangeFilter({
   value: [number, number];
   onChange: (next: [number, number]) => void;
 }) {
+  const t = useT();
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-label font-medium uppercase tracking-wide text-fg-muted">
-          Price range (COP)
+          {t("filter.priceLabel")}
         </label>
       </div>
 
@@ -42,7 +44,7 @@ export function PriceRangeFilter({
         onValueChange={(v) => onChange([v[0], v[1]] as [number, number])}
         minStepsBetweenThumbs={1}
         className="py-2"
-        aria-label="Price range"
+        aria-label={t("filter.priceAria")}
       />
 
       <div className="flex items-baseline justify-between text-label text-fg-subtle">

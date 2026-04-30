@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Poppins } from "next/font/google";
 import { ThemeProvider } from "@/components/theme-provider";
+import { LocaleProvider } from "@/lib/i18n/provider";
 import { Navbar } from "@/components/navbar";
 import "./globals.css";
 
@@ -18,12 +19,14 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={poppins.variable} suppressHydrationWarning>
+    <html lang="es" className={poppins.variable} suppressHydrationWarning>
       <body className="antialiased min-h-screen flex flex-col bg-bg-base text-fg">
-        <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
-          <Navbar />
-          <div className="flex-1 flex flex-col">{children}</div>
-        </ThemeProvider>
+        <LocaleProvider>
+          <ThemeProvider attribute="class" defaultTheme="dark" enableSystem={false}>
+            <Navbar />
+            <div className="flex-1 flex flex-col">{children}</div>
+          </ThemeProvider>
+        </LocaleProvider>
       </body>
     </html>
   );

@@ -6,6 +6,7 @@ import { Map } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator, WebMercatorViewport, type PickingInfo } from "@deck.gl/core";
+import { useT } from "@/lib/i18n/provider";
 
 export type HexAggregate = { hex: string; count: number; avgPrice: number };
 export type LngLatBounds = [[number, number], [number, number]];
@@ -89,16 +90,15 @@ function boundsEqual(a: LngLatBounds | null, b: LngLatBounds | null) {
 export function MapView({
   hexes,
   fitBounds,
-  showHeatmap,
   priceMin,
   priceMax,
 }: {
   hexes: HexAggregate[];
   fitBounds: LngLatBounds | null;
-  showHeatmap: boolean;
   priceMin: number;
   priceMax: number;
 }) {
+  const t = useT();
   const { resolvedTheme } = useTheme();
   const containerRef = useRef<HTMLDivElement>(null);
   const lastFitRef = useRef<LngLatBounds | null>(null);
@@ -121,11 +121,10 @@ export function MapView({
         stroked: false,
         filled: true,
         pickable: true,
-        visible: showHeatmap,
         updateTriggers: { getFillColor: [priceMin, priceMax] },
       }),
     ],
-    [hexes, showHeatmap, priceMin, priceMax, priceRange],
+    [hexes, priceMin, priceMax, priceRange],
   );
 
   // Auto-fit — first fit is instant; subsequent fits animate.
@@ -180,9 +179,11 @@ export function MapView({
         >
           <div className="font-semibold">
             {hover.object.count}{" "}
-            {hover.object.count === 1 ? "property" : "properties"}
+            {hover.object.count === 1 ? t("map.propertySingular") : t("map.propertyPlural")}
           </div>
-          <div className="text-fg-muted">avg {formatCOP(hover.object.avgPrice)}</div>
+          <div className="text-fg-muted">
+            {t("map.avg")} {formatCOP(hover.object.avgPrice)}
+          </div>
         </div>
       )}
     </div>

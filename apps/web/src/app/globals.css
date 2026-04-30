@@ -18,10 +18,11 @@
  * shadow colors flip per theme so the embossed effect reads correctly on both.
  */
 :root {
-  /* Surfaces */
-  --bg-base: #f0f2f5;
-  --bg-card: #f5f7fa;
-  --bg-elevated: #ffffff;
+  /* Surfaces — warm off-white (slight beige cast) so the light theme reads
+   * as paper-soft rather than stark monitor-white. */
+  --bg-base: #ebe7df;
+  --bg-card: #f1ede5;
+  --bg-elevated: #f6f2ea;
   /* Foreground */
   --fg: #0f1115;
   --fg-muted: #5a6270;
@@ -33,9 +34,12 @@
   --action-fg: #ffffff;
   --urgent: #F5A623;
   --urgent-fg: #1a1a1a;
-  /* Neumorphism shadow pair (light surface → bright highlight, soft shadow) */
-  --neu-light: rgba(255, 255, 255, 0.95);
-  --neu-dark: rgba(163, 177, 198, 0.55);
+  /* Neumorphism shadow pair — warm-toned to match the beige base. Lower
+   * opacity than before (was 0.95 / 0.55) so the highlight doesn't bleed
+   * past corners and create those bright triangle artifacts at the
+   * bottom-right of card shadows. */
+  --neu-light: rgba(255, 252, 245, 0.7);
+  --neu-dark: rgba(140, 120, 100, 0.22);
   /* Slider — neutral gray accent (not brand-blue), softened thumb */
   --slider-thumb: #475569;
   --slider-thumb-ring: rgba(15, 17, 21, 0.12);
@@ -55,9 +59,10 @@
   --action-fg: #ffffff;
   --urgent: #F5A623;
   --urgent-fg: #1a1a1a;
-  /* Inverted shadow pair on dark surface */
-  --neu-light: rgba(255, 255, 255, 0.04);
-  --neu-dark: rgba(0, 0, 0, 0.55);
+  /* Inverted shadow pair on dark surface — slightly toned down for parity
+   * with the lighter neumorphism in the light theme. */
+  --neu-light: rgba(255, 255, 255, 0.035);
+  --neu-dark: rgba(0, 0, 0, 0.5);
   /* Slider — neutral gray accent (not brand-blue), bright thumb on dark */
   --slider-thumb: #ffffff;
   --slider-thumb-ring: rgba(255, 255, 255, 0.18);
@@ -101,11 +106,14 @@
   --font-weight-semibold: 600;
   --font-weight-bold: 700;
 
-  /* Neumorphism shadow utilities — paired light + dark offsets */
-  --shadow-neu: 8px 8px 20px var(--neu-dark), -8px -8px 20px var(--neu-light);
-  --shadow-neu-sm: 4px 4px 10px var(--neu-dark), -4px -4px 10px var(--neu-light);
-  --shadow-neu-inset: inset 4px 4px 8px var(--neu-dark), inset -4px -4px 8px var(--neu-light);
-  --shadow-neu-pressed: inset 6px 6px 12px var(--neu-dark), inset -6px -6px 12px var(--neu-light);
+  /* Neumorphism shadow utilities — asymmetric pairs (more shadow than
+   * highlight) and tighter offsets so the effect scales gracefully from
+   * chip-sized pills (~32px) up to large cards without disproportionate
+   * artifacts. Inset variants create a pressed-in well for active states. */
+  --shadow-neu: 4px 4px 12px var(--neu-dark), -3px -3px 8px var(--neu-light);
+  --shadow-neu-sm: 2px 2px 6px var(--neu-dark), -1px -1px 4px var(--neu-light);
+  --shadow-neu-inset: inset 2px 2px 5px var(--neu-dark), inset -1px -1px 3px var(--neu-light);
+  --shadow-neu-pressed: inset 3px 3px 7px var(--neu-dark), inset -2px -2px 4px var(--neu-light);
 
   /* Radii */
   --radius-neu: 16px;

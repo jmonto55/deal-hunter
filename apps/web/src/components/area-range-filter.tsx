@@ -1,6 +1,7 @@
 "use client";
 
 import { Slider } from "@/components/ui/slider";
+import { useT } from "@/lib/i18n/provider";
 
 const STEP = 5;
 
@@ -15,11 +16,12 @@ export function AreaRangeFilter({
   value: [number, number];
   onChange: (next: [number, number]) => void;
 }) {
+  const t = useT();
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
         <label className="text-label font-medium uppercase tracking-wide text-fg-muted">
-          Area (m²)
+          {t("filter.areaLabel")}
         </label>
       </div>
 
@@ -36,7 +38,7 @@ export function AreaRangeFilter({
         onValueChange={(v) => onChange([v[0], v[1]] as [number, number])}
         minStepsBetweenThumbs={1}
         className="py-2"
-        aria-label="Area in square meters"
+        aria-label={t("filter.areaAria")}
       />
 
       <div className="flex items-baseline justify-between text-label text-fg-subtle">
