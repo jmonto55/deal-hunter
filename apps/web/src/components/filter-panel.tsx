@@ -39,8 +39,6 @@ function toggleSet<T>(prev: ReadonlySet<T>, value: T): Set<T> {
 type FilterCard = { key: string; label: string; node: ReactNode };
 
 export function FilterPanel(props: {
-  total: number;
-  matched: number;
   priceMin: number;
   priceMax: number;
   priceRange: [number, number];
@@ -63,8 +61,6 @@ export function FilterPanel(props: {
   onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
 }) {
   const {
-    total,
-    matched,
     priceMin,
     priceMax,
     priceRange,
@@ -87,7 +83,7 @@ export function FilterPanel(props: {
     onNeighborhoodsChange,
   } = props;
 
-  const { t, fmt } = useLocale();
+  const { t } = useLocale();
 
   // ── Reusable filter section nodes ────────────────────────────────────────
   const priceNode = (
@@ -198,16 +194,10 @@ export function FilterPanel(props: {
   ];
 
   const header = (
-    <header className="space-y-1.5">
+    <header>
       <h2 className="text-h3 font-semibold text-fg leading-tight">
         {t("panel.heading")}
       </h2>
-      <p className="text-label text-fg-muted">
-        <span className="text-fg font-semibold">{fmt(matched)}</span>
-        {` ${t("panel.matchSeparator")} `}
-        <span className="text-fg font-semibold">{fmt(total)}</span>
-        {` ${t("panel.matchSuffix")}`}
-      </p>
     </header>
   );
 
@@ -219,9 +209,10 @@ export function FilterPanel(props: {
         bg-bg-card
       "
     >
-      {/* Mobile: header + tab strip + horizontal carousel. */}
-      <div className="md:hidden p-4 space-y-4">
-        {header}
+      {/* Mobile: tab strip + horizontal carousel. The page heading lives
+       * above the map on mobile (see DealsExplorer) so it stays at the top
+       * of the viewport when filters move below the map. */}
+      <div className="md:hidden p-4">
         <MobileFilterCarousel cards={mobileCards} />
       </div>
 
@@ -298,7 +289,7 @@ function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
         })}
       </nav>
       <Carousel
-        opts={{ align: "start" }}
+        opts={{ align: "start", watchDrag: false }}
         plugins={[AutoHeight()]}
         setApi={setApi}
       >

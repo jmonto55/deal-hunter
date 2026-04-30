@@ -5,6 +5,8 @@ import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
 import { HeatmapLegend } from "@/components/heatmap-legend";
 import { MapView, type HexAggregate, type LngLatBounds } from "@/components/map-view";
+import { MatchCount } from "@/components/match-count";
+import { useT } from "@/lib/i18n/provider";
 
 export type DealPoint = {
   lat: number;
@@ -83,6 +85,7 @@ const BEDROOM_BUCKETS = [1, 2, 3, 4] as const; // 4 = "4+"
 const BATHROOM_BUCKETS = [1, 2, 3, 4] as const; // 4 = "4+"
 
 export function DealsExplorer({ points }: { points: DealPoint[] }) {
+  const t = useT();
   // ── Slider bounds derived from data ────────────────────────────────────
   const { priceMin, priceMax } = useMemo(() => {
     const { min, max } = deriveBounds(
@@ -150,10 +153,19 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const fitBounds = useMemo(() => computeBounds(debouncedFiltered), [debouncedFiltered]);
 
   return (
-    <main className="flex-1 flex flex-col md:flex-row min-h-0">
-      <FilterPanel
-        total={points.length}
-        matched={filtered.length}
+    <div className="flex-1 flex flex-col min-h-0">
+      {/* Mobile-only page title — stays at the top of the viewport even
+       * though the filter panel sits below the map on small screens. */}
+      <header className="md:hidden shrink-0 border-b border-border bg-bg-card px-4 py-3">
+        <h1 className="text-h3 font-semibold text-fg leading-tight">
+          {t("panel.heading")}
+        </h1>
+      </header>
+      {/* flex-col-reverse on mobile puts the map section above the filter
+       * panel (DOM order keeps filters first so md:flex-row still renders
+       * them on the left at desktop sizes). */}
+      <main className="flex-1 flex flex-col-reverse md:flex-row min-h-0">
+        <FilterPanel
         priceMin={priceMin}
         priceMax={priceMax}
         priceRange={priceRange}
@@ -175,17 +187,19 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         neighborhoods={neighborhoods}
         onNeighborhoodsChange={setNeighborhoods}
       />
-      <section className="relative flex-1 min-h-[60vh] md:min-h-0 flex flex-col">
-        <HeatmapLegend priceMin={priceMin} priceMax={priceMax} />
-        <div className="relative flex-1 min-h-0">
-          <MapView
-            hexes={hexes}
-            fitBounds={fitBounds}
-            priceMin={priceMin}
-            priceMax={priceMax}
-          />
-        </div>
-      </section>
-    </main>
+        <section className="relative flex-1 min-h-[60vh] md:min-h-0 flex flex-col">
+          <HeatmapLegend priceMin={priceMin} priceMax={priceMax} />
+          <div className="relative flex-1 min-h-0">
+            <MatchCount matched={filtered.length} total={points.length} />
+            <MapView
+              hexes={hexes}
+              fitBounds={fitBounds}
+              priceMin={priceMin}
+              priceMax={priceMax}
+            />
+          </div>
+        </section>
+      </main>
+    </div>
   );
 }
