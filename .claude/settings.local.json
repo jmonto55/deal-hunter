@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "PowerShell(node --version)",
+      "PowerShell(npm --version)",
+      "PowerShell(winget --version)",
+      "PowerShell(winget install --id OpenJS.NodeJS.LTS --accept-package-agreements --accept-source-agreements --silent)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; node --version; npm --version)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; Set-Location \"c:\\\\Users\\\\Jmira\\\\OneDrive\\\\ROAD TO LEMILLION\\\\deal-hunter\"; npm install)",
+      "PowerShell($env:PATH = \"C:\\\\Program Files\\\\nodejs;\" + $env:PATH; node --version; npm --version; \\(Get-Command node\\).Source)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"Machine\"\\) -split ';' | Where-Object { $_ -ne \"\" } | Sort-Object)",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"PATH\", \"User\"\\) -split ';' | Where-Object { $_ -ne \"\" })",
+      "PowerShell([System.Environment]::GetEnvironmentVariable\\(\"HOME\", \"User\"\\); [System.Environment]::GetEnvironmentVariable\\(\"HOME\", \"Machine\"\\); $env:USERPROFILE)",
+      "Bash(gh auth *)"
+    ]
+  }
+}
