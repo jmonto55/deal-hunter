@@ -2,6 +2,7 @@
 
 import { useEffect, useState, type ReactNode } from "react";
 import AutoHeight from "embla-carousel-auto-height";
+import { X } from "lucide-react";
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
@@ -59,6 +60,8 @@ export function FilterPanel(props: {
   allNeighborhoods: string[];
   neighborhoods: ReadonlySet<string>;
   onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
+  hasActiveFilters: boolean;
+  onReset: () => void;
 }) {
   const {
     priceMin,
@@ -81,6 +84,8 @@ export function FilterPanel(props: {
     allNeighborhoods,
     neighborhoods,
     onNeighborhoodsChange,
+    hasActiveFilters,
+    onReset,
   } = props;
 
   const { t } = useLocale();
@@ -205,13 +210,22 @@ export function FilterPanel(props: {
        * above the map on mobile (see DealsExplorer) so it stays at the top
        * of the viewport when filters move below the map. */}
       <div className="md:hidden p-4">
-        <MobileFilterCarousel cards={mobileCards} />
+        <MobileFilterCarousel
+          cards={mobileCards}
+          hasActiveFilters={hasActiveFilters}
+          onReset={onReset}
+        />
       </div>
 
       {/* Desktop: vertical stack (heading lives above the heatmap legend
        * in DealsExplorer so it sits over the map column). */}
       <div className="hidden md:block p-5 md:max-h-[calc(100vh-3.5rem)] md:overflow-y-auto">
         <div className="space-y-4">
+          {hasActiveFilters && (
+            <div className="flex justify-end">
+              <ResetButton onReset={onReset} />
+            </div>
+          )}
           {desktopCards.map((card) => (
             <FilterCardLayout key={card.key} label={card.label}>
               {card.node}
@@ -229,7 +243,15 @@ export function FilterPanel(props: {
  * pressed-in with action-blue text when selected) so the active state pulls
  * from the design system instead of inventing a new filled-pill treatment.
  */
-function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
+function MobileFilterCarousel({
+  cards,
+  hasActiveFilters,
+  onReset,
+}: {
+  cards: FilterCard[];
+  hasActiveFilters: boolean;
+  onReset: () => void;
+}) {
   const { t } = useLocale();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -253,6 +275,21 @@ function MobileFilterCarousel({ cards }: { cards: FilterCard[] }) {
         role="tablist"
         aria-label={t("panel.tabsAria")}
       >
+        {hasActiveFilters && (
+          <button
+            type="button"
+            onClick={onReset}
+            aria-label={t("filter.resetAria")}
+            className={cn(
+              "shrink-0 inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-label font-medium whitespace-nowrap transition-all duration-150 bg-bg-base text-fg-muted hover:text-fg",
+              "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/40",
+            )}
+            style={{ boxShadow: "var(--shadow-neu-sm)" }}
+          >
+            <X className="size-3.5" aria-hidden="true" />
+            {t("filter.reset")}
+          </button>
+        )}
         {cards.map((card, i) => {
           const selected = current === i;
           return (
@@ -325,5 +362,25 @@ function SubSection({ label, children }: { label: string; children: ReactNode })
       <div className="text-label font-medium text-fg-muted">{label}</div>
       {children}
     </div>
+  );
+}
+
+/** Desktop reset button — neumorphic pill, mirrors the mobile reset chip. */
+function ResetButton({ onReset }: { onReset: () => void }) {
+  const { t } = useLocale();
+  return (
+    <button
+      type="button"
+      onClick={onReset}
+      aria-label={t("filter.resetAria")}
+      className={cn(
+        "inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-label font-medium bg-bg-base text-fg-muted hover:text-fg transition-all duration-150",
+        "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-action/40",
+      )}
+      style={{ boxShadow: "var(--shadow-neu-sm)" }}
+    >
+      <X className="size-3.5" aria-hidden="true" />
+      {t("filter.resetLong")}
+    </button>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
 import { HeatmapLegend } from "@/components/heatmap-legend";
@@ -152,6 +152,25 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
 
   const fitBounds = useMemo(() => computeBounds(debouncedFiltered), [debouncedFiltered]);
 
+  const hasActiveFilters =
+    priceRange[0] !== priceMin ||
+    priceRange[1] !== priceMax ||
+    areaRange[0] !== areaMin ||
+    areaRange[1] !== areaMax ||
+    propertyTypes.size > 0 ||
+    bedroomBuckets.size > 0 ||
+    bathroomBuckets.size > 0 ||
+    neighborhoods.size > 0;
+
+  const resetFilters = useCallback(() => {
+    setPriceRange([priceMin, priceMax]);
+    setAreaRange([areaMin, areaMax]);
+    setPropertyTypes(new Set());
+    setBedroomBuckets(new Set());
+    setBathroomBuckets(new Set());
+    setNeighborhoods(new Set());
+  }, [priceMin, priceMax, areaMin, areaMax]);
+
   return (
     <div className="flex-1 flex flex-col min-h-0">
       {/* Mobile-only page title — stays at the top of the viewport even
@@ -166,27 +185,29 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
        * them on the left at desktop sizes). */}
       <main className="flex-1 flex flex-col-reverse md:flex-row min-h-0">
         <FilterPanel
-        priceMin={priceMin}
-        priceMax={priceMax}
-        priceRange={priceRange}
-        onPriceRangeChange={setPriceRange}
-        areaMin={areaMin}
-        areaMax={areaMax}
-        areaRange={areaRange}
-        onAreaRangeChange={setAreaRange}
-        allPropertyTypes={allPropertyTypes}
-        propertyTypes={propertyTypes}
-        onPropertyTypesChange={setPropertyTypes}
-        bedroomBuckets={bedroomBuckets}
-        onBedroomBucketsChange={setBedroomBuckets}
-        bedroomOptions={BEDROOM_BUCKETS}
-        bathroomBuckets={bathroomBuckets}
-        onBathroomBucketsChange={setBathroomBuckets}
-        bathroomOptions={BATHROOM_BUCKETS}
-        allNeighborhoods={allNeighborhoods}
-        neighborhoods={neighborhoods}
-        onNeighborhoodsChange={setNeighborhoods}
-      />
+          priceMin={priceMin}
+          priceMax={priceMax}
+          priceRange={priceRange}
+          onPriceRangeChange={setPriceRange}
+          areaMin={areaMin}
+          areaMax={areaMax}
+          areaRange={areaRange}
+          onAreaRangeChange={setAreaRange}
+          allPropertyTypes={allPropertyTypes}
+          propertyTypes={propertyTypes}
+          onPropertyTypesChange={setPropertyTypes}
+          bedroomBuckets={bedroomBuckets}
+          onBedroomBucketsChange={setBedroomBuckets}
+          bedroomOptions={BEDROOM_BUCKETS}
+          bathroomBuckets={bathroomBuckets}
+          onBathroomBucketsChange={setBathroomBuckets}
+          bathroomOptions={BATHROOM_BUCKETS}
+          allNeighborhoods={allNeighborhoods}
+          neighborhoods={neighborhoods}
+          onNeighborhoodsChange={setNeighborhoods}
+          hasActiveFilters={hasActiveFilters}
+          onReset={resetFilters}
+        />
         <section className="relative flex-1 min-h-[60vh] md:min-h-0 flex flex-col">
           {/* Desktop-only page title — sits above the heatmap legend so the
            * map column reads as: title → price legend → map. */}

@@ -35,6 +35,9 @@ const es = {
   "filter.bathrooms": "Baños",
   "filter.rooms": "Espacios",
   "filter.neighborhood": "Barrio",
+  "filter.reset": "Limpiar",
+  "filter.resetLong": "Limpiar filtros",
+  "filter.resetAria": "Limpiar todos los filtros",
 
   // Property type chip labels
   "propertyType.apartamento": "Apartamento",
@@ -80,6 +83,9 @@ const en: Record<keyof typeof es, string> = {
   "filter.bathrooms": "Bathrooms",
   "filter.rooms": "Rooms",
   "filter.neighborhood": "Neighborhood",
+  "filter.reset": "Clear",
+  "filter.resetLong": "Clear filters",
+  "filter.resetAria": "Clear all filters",
 
   "propertyType.apartamento": "Apartment",
   "propertyType.casa": "House",
