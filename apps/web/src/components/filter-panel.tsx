@@ -213,7 +213,9 @@ export function FilterPanel(props: {
         label={t("filter.layerDiscount")}
         checked={layerVisibility.discount}
         onCheckedChange={(v) => onLayerVisibilityChange({ ...layerVisibility, discount: v })}
-        gradient="linear-gradient(to right, #dc2626, #94a3b8, #0d9488)"
+        gradient="linear-gradient(to right, #993C1D 0%, #D85A30 25%, #B4B2A9 50%, #1D9E75 75%, #0F6E56 100%)"
+        minLabel={t("legend.overMarket")}
+        maxLabel={t("legend.belowMarket")}
       />
     </div>
   );
@@ -422,11 +424,15 @@ function LayerToggle({
   checked,
   onCheckedChange,
   gradient,
+  minLabel,
+  maxLabel,
 }: {
   label: string;
   checked: boolean;
   onCheckedChange: (v: boolean) => void;
   gradient: string;
+  minLabel?: string;
+  maxLabel?: string;
 }) {
   return (
     <div className="flex items-center gap-3">
@@ -434,9 +440,15 @@ function LayerToggle({
       <div className="flex-1 space-y-1.5">
         <div className="text-label font-medium text-fg leading-none">{label}</div>
         <div
-          className="h-1.5 w-full rounded-full transition-opacity duration-150"
+          className="h-2 w-full rounded-full"
           style={{ background: gradient, opacity: checked ? 1 : 0.3 }}
         />
+        {(minLabel || maxLabel) && (
+          <div className="flex justify-between" style={{ fontSize: 10, opacity: checked ? 1 : 0.5 }}>
+            {minLabel && <span style={{ color: "#D85A30" }}>{minLabel}</span>}
+            {maxLabel && <span style={{ color: "#1D9E75" }}>{maxLabel}</span>}
+          </div>
+        )}
       </div>
     </div>
   );

@@ -93,8 +93,10 @@ const es = {
 
   // Discount legend
   "legend.discountTitle": "Descuento vs. Mercado",
-  "legend.overMarket": "Sobre precio",
-  "legend.belowMarket": "Bajo precio",
+  "legend.discountMapTitle": "Mapa de oportunidades",
+  "legend.discountSubtitle": "Descuento vs. precio del barrio",
+  "legend.overMarket": "Sobre mercado",
+  "legend.belowMarket": "Bajo mercado",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -171,6 +173,8 @@ const en: Record<keyof typeof es, string> = {
   "map.fitToFilters": "Fit to filter",
 
   "legend.discountTitle": "Discount vs. Market",
+  "legend.discountMapTitle": "Opportunity map",
+  "legend.discountSubtitle": "Discount vs. neighborhood price",
   "legend.overMarket": "Over market",
   "legend.belowMarket": "Below market",
 };

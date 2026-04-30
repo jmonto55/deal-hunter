@@ -256,6 +256,39 @@ export function MapView({
         <Maximize2 />
       </Button>
 
+      {layerVisibility.discount && (
+        <div
+          className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-md bg-bg-card border border-border px-3 py-2"
+          style={{ width: 280, boxShadow: "var(--shadow-neu-sm)" }}
+        >
+          <div className="text-[14px] font-medium text-fg leading-snug">
+            {t("legend.discountMapTitle")}
+          </div>
+          <div className="text-[12px] text-fg-muted mb-2">
+            {t("legend.discountSubtitle")}
+          </div>
+          <div
+            className="w-full rounded"
+            style={{
+              height: 16,
+              background:
+                "linear-gradient(to right, #DC2626 0%, #F87171 20%, #FCA5A5 38%, #94A3B8 50%, #5EEAD4 62%, #14B8A6 80%, #115E59 100%)",
+            }}
+          />
+          <div className="flex justify-between mt-1" style={{ fontSize: 11, color: "var(--fg-muted)" }}>
+            <span>−20%</span>
+            <span>−10%</span>
+            <span>0%</span>
+            <span>+10%</span>
+            <span>+20%</span>
+          </div>
+          <div className="flex justify-between mt-1.5">
+            <span style={{ fontSize: 11, color: "#D85A30" }}>{t("legend.overMarket")}</span>
+            <span style={{ fontSize: 11, color: "#1D9E75" }}>{t("legend.belowMarket")}</span>
+          </div>
+        </div>
+      )}
+
       {hover?.object && (
         <div
           className="pointer-events-none absolute z-10 rounded-md bg-bg-card text-fg text-label px-3 py-2 border border-border"

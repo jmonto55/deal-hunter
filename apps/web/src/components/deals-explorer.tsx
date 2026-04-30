@@ -145,6 +145,17 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [minDiscount, setMinDiscount] = useState<number>(-10);
   const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({ price: true, discount: false });
 
+  const handleLayerVisibilityChange = useCallback((next: LayerVisibility) => {
+    // Price and discount color the same hexes with different meanings — enforce mutual exclusion.
+    if (next.discount && next.price) {
+      // Determine which one the user just toggled ON
+      if (!layerVisibility.discount) setLayerVisibility({ ...next, price: false });
+      else setLayerVisibility({ ...next, discount: false });
+    } else {
+      setLayerVisibility(next);
+    }
+  }, [layerVisibility]);
+
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
     return points.filter((p) => {
@@ -247,7 +258,7 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
           minDiscount={minDiscount}
           onMinDiscountChange={setMinDiscount}
           layerVisibility={layerVisibility}
-          onLayerVisibilityChange={setLayerVisibility}
+          onLayerVisibilityChange={handleLayerVisibilityChange}
           hasActiveFilters={hasActiveFilters}
           onReset={resetFilters}
         />
