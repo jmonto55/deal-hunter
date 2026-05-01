@@ -32,3 +32,6 @@ yarn-error.log*
 # OS
 .DS_Store
 *.pem
+
+# Demo recordings
+.claude/demos/
