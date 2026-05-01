@@ -1,24 +1,88 @@
 import { cn } from "@/lib/utils";
 
-/**
- * DealHunter logo: corner-bracket icon + wordmark.
- * Approximates the brand mark from the guidelines (stylized [ ] frame
- * suggesting a target / locator). Color flows from `currentColor` so it
- * inherits the surrounding text color — letting us render the brand-approved
- * "Invertida" (white-on-dark) and "Principal" (dark-on-light) variants
- * without per-theme assets.
- */
 export function Logo({ className }: { className?: string }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 font-bold tracking-tight text-fg select-none",
-        className,
-      )}
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      viewBox="280 850 1460 300"
+      className={cn("h-8 w-auto", className)}
+      aria-label="DealHunter"
+      role="img"
     >
-      <LogoMark className="size-6" />
-      <span className="text-[18px]">DEALHUNTER</span>
-    </span>
+      {/* Letterforms + logo mark — inherit text color */}
+      <g
+        transform="translate(0,2000) scale(0.1,-0.1)"
+        fill="currentColor"
+        stroke="none"
+      >
+        {/* Logo mark (bracket icon) */}
+        <path d="M5090 10960 l0 -240 -240 0 -240 0 0 -245 0 -245 240 0 240 0 0 245
+0 245 245 0 245 0 0 240 0 240 -245 0 -245 0 0 -240z"/>
+        {/* D */}
+        <path d="M3160 9760 l0 -960 965 0 965 0 0 485 0 485 -240 0 -240 0 0 -245 0
+-245 -485 0 -485 0 0 475 0 475 250 0 250 0 0 245 0 245 -490 0 -490 0 0 -960z"/>
+        {/* E */}
+        <path d="M5670 9781 l0 -611 279 0 c206 0 300 4 358 15 233 45 415 214 468
+436 19 83 19 248 0 324 -52 205 -189 347 -400 416 -66 21 -90 23 -387 27
+l-318 4 0 -611z m529 309 c82 -14 129 -39 179 -95 109 -124 91 -365 -36 -462
+-59 -45 -128 -63 -239 -63 l-93 0 0 308 c0 170 3 312 7 315 10 10 110 8 182
+-3z"/>
+        {/* A */}
+        <path d="M6950 9780 l0 -610 390 0 390 0 0 135 0 135 -220 0 -220 0 0 110 0
+110 193 2 192 3 3 128 3 127 -196 0 -195 0 0 100 0 100 220 0 220 0 0 135 0
+135 -390 0 -390 0 0 -610z"/>
+        {/* L */}
+        <path d="M8046 9812 c-116 -317 -216 -592 -223 -609 l-13 -33 179 0 180 0 32
+100 33 100 216 0 216 0 33 -100 32 -100 179 0 180 0 -35 98 c-20 53 -119 328
+-222 610 l-186 512 -196 0 -196 0 -209 -578z m471 11 c35 -103 61 -188 59
+-190 -2 -2 -59 -2 -128 -1 l-125 3 60 188 c33 103 63 187 66 187 4 0 34 -84
+68 -187z"/>
+        {/* H */}
+        <path d="M9200 9780 l0 -610 360 0 360 0 0 130 0 130 -190 0 -190 0 0 480 0
+480 -170 0 -170 0 0 -610z"/>
+        {/* U */}
+        <path d="M10050 9780 l0 -610 170 0 170 0 0 245 0 245 205 0 205 0 0 -245 0
+-245 170 0 170 0 0 610 0 610 -170 0 -170 0 0 -230 0 -230 -205 0 -205 0 0
+230 0 230 -170 0 -170 0 0 -610z"/>
+        {/* N */}
+        <path d="M11332 9973 c4 -397 5 -421 26 -483 70 -212 246 -330 492 -330 221 0
+398 101 479 273 48 102 51 138 51 562 l0 395 -170 0 -170 0 0 -388 c0 -382 0
+-388 -22 -432 -36 -70 -65 -85 -163 -85 -94 0 -123 14 -160 76 -19 32 -20 55
+-23 432 l-3 397 -170 0 -170 0 3 -417z"/>
+        {/* T */}
+        <path d="M12570 9780 l0 -610 170 0 170 0 2 337 3 337 222 -337 222 -337 171
+0 170 0 0 610 0 610 -170 0 -170 0 -2 -341 -3 -341 -223 341 -224 341 -169 0
+-169 0 0 -610z"/>
+        {/* E (second) */}
+        <path d="M13830 10255 l0 -135 160 0 160 0 0 -475 0 -475 170 0 170 0 0 475 0
+475 160 0 160 0 0 135 0 135 -490 0 -490 0 0 -135z"/>
+        {/* R */}
+        <path d="M14940 9780 l0 -610 390 0 390 0 0 135 0 135 -220 0 -220 0 0 110 0
+110 195 0 195 0 0 130 0 130 -195 0 -195 0 0 100 0 100 220 0 220 0 0 135 0
+135 -390 0 -390 0 0 -610z"/>
+        {/* Last letter */}
+        <path d="M15890 9780 l0 -610 170 0 170 0 0 225 c0 208 1 225 18 225 12 -1 51
+-65 137 -225 l120 -225 187 0 c104 0 188 2 188 4 0 2 -61 108 -135 236 -74
+128 -134 234 -133 234 2 1 34 16 71 35 141 70 216 223 188 383 -30 170 -149
+283 -335 319 -27 5 -183 9 -347 9 l-299 0 0 -610z m552 320 c53 -15 88 -61 88
+-115 0 -103 -35 -128 -187 -133 l-113 -4 0 131 0 131 88 0 c48 0 104 -5 124
+-10z"/>
+      </g>
+      {/* Counter fills (holes in closed letterforms) — must match page background */}
+      <g
+        transform="translate(0,2000) scale(0.1,-0.1)"
+        fill="var(--bg-base)"
+        stroke="none"
+      >
+        <path d="M6018 10094 c-5 -4 -8 -147 -8 -317 l0 -310 113 5 c99 4 122 8 170
+32 63 30 100 69 131 136 31 67 29 215 -3 288 -29 64 -95 125 -159 146 -53 18
+-233 32 -244 20z"/>
+        <path d="M8384 9820 l-61 -190 129 0 c100 0 129 3 125 13 -2 6 -31 92 -63 190
+-32 97 -61 177 -64 177 -3 0 -33 -86 -66 -190z"/>
+        <path d="M16230 9980 l0 -130 95 0 c155 0 205 33 205 134 0 36 -6 52 -27 76
+-34 38 -79 49 -190 50 l-83 0 0 -130z"/>
+      </g>
+    </svg>
   );
 }
 
@@ -31,19 +95,14 @@ export function LogoMark({ className }: { className?: string }) {
       className={className}
       aria-hidden="true"
     >
-      {/* Top-left bracket */}
       <rect x="2" y="2" width="6" height="2" fill="currentColor" />
       <rect x="2" y="2" width="2" height="6" fill="currentColor" />
-      {/* Top-right bracket */}
       <rect x="16" y="2" width="6" height="2" fill="currentColor" />
       <rect x="20" y="2" width="2" height="6" fill="currentColor" />
-      {/* Bottom-left bracket */}
       <rect x="2" y="16" width="2" height="6" fill="currentColor" />
       <rect x="2" y="20" width="6" height="2" fill="currentColor" />
-      {/* Bottom-right bracket */}
       <rect x="20" y="16" width="2" height="6" fill="currentColor" />
       <rect x="16" y="20" width="6" height="2" fill="currentColor" />
-      {/* Center accent */}
       <rect x="10" y="10" width="4" height="4" fill="currentColor" />
     </svg>
   );

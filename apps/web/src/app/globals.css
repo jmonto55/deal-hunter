@@ -48,22 +48,26 @@
 }
 
 .dark {
-  --bg-base: #0D0D0D;
-  --bg-card: #1A1A1A;
-  --bg-elevated: #232323;
+  /* Surfaces — neutral charcoal with a subtle cool tint (torre.ai-style),
+   * not pure black. Each step is a small but perceptible lift so cards
+   * read as "elevated above the page" rather than glowing. */
+  --bg-base: #16171B;
+  --bg-card: #1F2026;
+  --bg-elevated: #2A2B32;
   --fg: #FFFFFF;
   --fg-muted: #A0A0A0;
   --fg-subtle: #6b6b6b;
-  --border: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.06);
   --action: #2D6EF5;
   --action-fg: #ffffff;
   --urgent: #F5A623;
   --urgent-fg: #1a1a1a;
-  /* Light-on-dark neumorphism: both shadow halves use white tints so the
-   * embossed effect reads as a soft glow on the dark surface instead of
-   * disappearing into the near-black background. */
-  --neu-light: rgba(255, 255, 255, 0.12);
-  --neu-dark: rgba(255, 255, 255, 0.04);
+  /* Now that the base surface isn't near-black, true-black drop shadows
+   * have headroom to read. The dark half does the lifting; the white
+   * half is a faint top-edge highlight that keeps the neumorphic two-tone
+   * intact without the previous "soft white glow" look. */
+  --neu-light: rgba(255, 255, 255, 0.04);
+  --neu-dark: rgba(0, 0, 0, 0.45);
   /* Slider — neutral gray accent (not brand-blue), bright thumb on dark */
   --slider-thumb: #ffffff;
   --slider-thumb-ring: rgba(255, 255, 255, 0.18);
@@ -128,14 +132,36 @@ body {
   font-feature-settings: "ss01", "cv11";
 }
 
-/* MapLibre attribution / controls — minimal styling so they don't clash */
+/* MapLibre attribution — required by CARTO + OSM licenses, but tuned to
+ * the minimum visual footprint that still reads as a clickable element.
+ * The compact `i` button is the only thing visible at rest; the text panel
+ * only appears when hovered/clicked (MapLibre default behavior).
+ *
+ * `:not(.maplibregl-compact-show)` keeps the dim/transparent look on the
+ * resting state — when the user opens it, the panel becomes fully opaque
+ * so the credits are legible. */
 .maplibregl-ctrl-attrib {
-  background: color-mix(in oklab, var(--bg-card) 80%, transparent) !important;
-  color: var(--fg-muted) !important;
+  background: transparent !important;
   font-size: 10px !important;
+  opacity: 0.45;
+  transition: opacity 150ms ease;
 }
+.maplibregl-ctrl-attrib:hover,
+.maplibregl-ctrl-attrib.maplibregl-compact-show {
+  opacity: 1;
+  background: color-mix(in oklab, var(--bg-card) 90%, transparent) !important;
+}
+.maplibregl-ctrl-attrib,
 .maplibregl-ctrl-attrib a {
   color: var(--fg-muted) !important;
+}
+/* Compact `i` button — shrink it slightly and dim until hovered. */
+.maplibregl-ctrl-attrib-button {
+  opacity: 0.55;
+  transition: opacity 150ms ease;
+}
+.maplibregl-ctrl-attrib-button:hover {
+  opacity: 1;
 }
 
 /* Bottom-sheet entrance — drawer slides up from below the viewport. Pair

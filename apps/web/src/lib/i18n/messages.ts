@@ -90,6 +90,8 @@ const es = {
   "map.discount": "descuento vs. mercado",
   "map.noDiscount": "sin dato",
   "map.fitToFilters": "Ajustar al filtro",
+  "map.zoomIn": "Acercar",
+  "map.zoomOut": "Alejar",
 
   // Discount legend
   "legend.discountTitle": "Descuento vs. Mercado",
@@ -171,6 +173,8 @@ const en: Record<keyof typeof es, string> = {
   "map.discount": "discount vs. market",
   "map.noDiscount": "no data",
   "map.fitToFilters": "Fit to filter",
+  "map.zoomIn": "Zoom in",
+  "map.zoomOut": "Zoom out",
 
   "legend.discountTitle": "Discount vs. Market",
   "legend.discountMapTitle": "Opportunity map",

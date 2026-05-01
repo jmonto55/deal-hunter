@@ -1,11 +1,8 @@
-<svg width="32" height="32" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-  <rect x="2" y="2" width="6" height="2" fill="#2D6EF5"/>
-  <rect x="2" y="2" width="2" height="6" fill="#2D6EF5"/>
-  <rect x="16" y="2" width="6" height="2" fill="#2D6EF5"/>
-  <rect x="20" y="2" width="2" height="6" fill="#2D6EF5"/>
-  <rect x="2" y="16" width="2" height="6" fill="#2D6EF5"/>
-  <rect x="2" y="20" width="6" height="2" fill="#2D6EF5"/>
-  <rect x="20" y="16" width="2" height="6" fill="#2D6EF5"/>
-  <rect x="16" y="20" width="6" height="2" fill="#2D6EF5"/>
-  <rect x="10" y="10" width="4" height="4" fill="#2D6EF5"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" fill="none">
+  <g transform="translate(32 33) scale(0.7933884298)">
+    <path fill="#2D6EF5" d="M0 48H98V97H49V192H193V240H0V48Z"/>
+    <rect x="145" y="48" width="48" height="49" fill="#2D6EF5"/>
+    <rect x="145" y="143" width="48" height="49" fill="#2D6EF5"/>
+    <rect x="193" y="0" width="49" height="48" fill="#2D6EF5"/>
+  </g>
 </svg>
