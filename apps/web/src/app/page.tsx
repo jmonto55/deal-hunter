@@ -16,6 +16,7 @@ async function getDealPoints(): Promise<DealPoint[]> {
       propertyType: deals.propertyType,
       neighborhood: deals.neighborhood,
       discountPct: deals.discountPct,
+      comparableGroupLabel: deals.comparableGroupLabel,
     })
     .from(deals);
   return rows.map((r) => ({
@@ -28,6 +29,7 @@ async function getDealPoints(): Promise<DealPoint[]> {
     propertyType: r.propertyType,
     neighborhood: r.neighborhood ?? "—",
     discountPct: r.discountPct == null ? null : Number(r.discountPct),
+    comparableGroupLabel: r.comparableGroupLabel,
   }));
 }
 

@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
-import { HeatmapLegend } from "@/components/heatmap-legend";
 import { MapView, type HexAggregate, type LayerVisibility, type LngLatBounds } from "@/components/map-view";
 import { MatchCount } from "@/components/match-count";
 import { PropertyDrawer } from "@/components/property-drawer";
@@ -19,6 +18,7 @@ export type DealPoint = {
   propertyType: string;
   neighborhood: string;
   discountPct: number | null;
+  comparableGroupLabel: string | null;
 };
 
 export type Filters = {
@@ -32,10 +32,22 @@ export type Filters = {
 const H3_RESOLUTION = 10; // ~65m edge — block / building-cluster scale
 const FIT_DEBOUNCE_MS = 300;
 
+function modeLabel(labels: string[]): string | null {
+  if (labels.length === 0) return null;
+  const freq = new Map<string, number>();
+  for (const l of labels) freq.set(l, (freq.get(l) ?? 0) + 1);
+  let best: string | null = null;
+  let bestCount = 0;
+  for (const [l, c] of freq) {
+    if (c > bestCount) { best = l; bestCount = c; }
+  }
+  return best;
+}
+
 function aggregateToHexes(points: DealPoint[], res: number): HexAggregate[] {
   const buckets = new Map<
     string,
-    { count: number; sum: number; sumDiscount: number; countDiscount: number }
+    { count: number; sum: number; sumDiscount: number; countDiscount: number; labels: string[] }
   >();
   for (const p of points) {
     const cell = latLngToCell(p.lat, p.lng, res);
@@ -47,12 +59,14 @@ function aggregateToHexes(points: DealPoint[], res: number): HexAggregate[] {
         b.sumDiscount += p.discountPct;
         b.countDiscount++;
       }
+      if (p.comparableGroupLabel !== null) b.labels.push(p.comparableGroupLabel);
     } else {
       buckets.set(cell, {
         count: 1,
         sum: p.price,
         sumDiscount: p.discountPct ?? 0,
         countDiscount: p.discountPct !== null ? 1 : 0,
+        labels: p.comparableGroupLabel !== null ? [p.comparableGroupLabel] : [],
       });
     }
   }
@@ -66,6 +80,7 @@ function aggregateToHexes(points: DealPoint[], res: number): HexAggregate[] {
       count: b.count,
       avgPrice: Math.round(b.sum / b.count),
       avgDiscount,
+      comparableGroupLabel: modeLabel(b.labels),
     };
   });
 }
@@ -143,18 +158,7 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [bathroomBuckets, setBathroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
   const [minDiscount, setMinDiscount] = useState<number>(-10);
-  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({ price: true, discount: false });
-
-  const handleLayerVisibilityChange = useCallback((next: LayerVisibility) => {
-    // Price and discount color the same hexes with different meanings — enforce mutual exclusion.
-    if (next.discount && next.price) {
-      // Determine which one the user just toggled ON
-      if (!layerVisibility.discount) setLayerVisibility({ ...next, price: false });
-      else setLayerVisibility({ ...next, discount: false });
-    } else {
-      setLayerVisibility(next);
-    }
-  }, [layerVisibility]);
+  const [layerVisibility, setLayerVisibility] = useState<LayerVisibility>({ discount: false });
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -258,26 +262,22 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
           minDiscount={minDiscount}
           onMinDiscountChange={setMinDiscount}
           layerVisibility={layerVisibility}
-          onLayerVisibilityChange={handleLayerVisibilityChange}
+          onLayerVisibilityChange={setLayerVisibility}
           hasActiveFilters={hasActiveFilters}
           onReset={resetFilters}
         />
         <section className="relative flex-1 min-h-[60vh] md:min-h-0 flex flex-col">
-          {/* Desktop-only page title — sits above the heatmap legend so the
-           * map column reads as: title → price legend → map. */}
+          {/* Desktop-only page title */}
           <header className="hidden md:block shrink-0 border-b border-border bg-bg-card px-6 py-3">
             <h1 className="text-h3 font-semibold text-fg leading-tight">
               {t("panel.heading")}
             </h1>
           </header>
-          <HeatmapLegend priceMin={priceMin} priceMax={priceMax} />
           <div className="relative flex-1 min-h-0">
             <MatchCount matched={filtered.length} total={points.length} />
             <MapView
               hexes={hexes}
               fitBounds={fitBounds}
-              priceMin={priceMin}
-              priceMax={priceMax}
               layerVisibility={layerVisibility}
               onHexClick={setSelectedHex}
             />

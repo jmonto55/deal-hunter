@@ -6,13 +6,13 @@ import { Map, AttributionControl } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator, WebMercatorViewport, type PickingInfo } from "@deck.gl/core";
-import { Maximize2, Plus, Minus } from "lucide-react";
+import { Info, Maximize2, Plus, Minus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/provider";
 
-export type HexAggregate = { hex: string; count: number; avgPrice: number; avgDiscount: number | null };
+export type HexAggregate = { hex: string; count: number; avgPrice: number; avgDiscount: number | null; comparableGroupLabel: string | null };
 export type LngLatBounds = [[number, number], [number, number]];
-export type LayerVisibility = { price: boolean; discount: boolean };
+export type LayerVisibility = { discount: boolean };
 
 // `voyager` is Carto's detailed light style — shows street names, parks,
 // water bodies, neighborhood boundaries. `dark-matter` stays for dark mode
@@ -124,15 +124,11 @@ function boundsEqual(a: LngLatBounds | null, b: LngLatBounds | null) {
 export function MapView({
   hexes,
   fitBounds,
-  priceMin,
-  priceMax,
   layerVisibility,
   onHexClick,
 }: {
   hexes: HexAggregate[];
   fitBounds: LngLatBounds | null;
-  priceMin: number;
-  priceMax: number;
   layerVisibility: LayerVisibility;
   onHexClick?: (hex: string | null) => void;
 }) {
@@ -143,9 +139,9 @@ export function MapView({
   const isFirstFitRef = useRef(true);
   const [viewState, setViewState] = useState<Record<string, unknown>>(INITIAL_VIEW_STATE);
   const [hover, setHover] = useState<PickingInfo<HexAggregate> | null>(null);
+  const [showLegendInfo, setShowLegendInfo] = useState(false);
 
   const styleUrl = resolvedTheme === "light" ? STYLE_LIGHT : STYLE_DARK;
-  const priceRange = Math.max(1, priceMax - priceMin);
 
   const discountHexes = useMemo(
     () => hexes.filter((d): d is HexAggregate & { avgDiscount: number } => d.avgDiscount !== null),
@@ -154,23 +150,6 @@ export function MapView({
 
   const layers = useMemo(
     () => [
-      new H3HexagonLayer<HexAggregate>({
-        id: "deals-price",
-        data: hexes,
-        getHexagon: (d) => d.hex,
-        // sqrt() stretches the cheap-mid range across more of the gradient.
-        getFillColor: (d) =>
-          interpolate(
-            PRICE_STOPS,
-            Math.sqrt((d.avgPrice - priceMin) / priceRange),
-          ),
-        extruded: false,
-        stroked: false,
-        filled: true,
-        pickable: true,
-        visible: layerVisibility.price,
-        updateTriggers: { getFillColor: [priceMin, priceMax] },
-      }),
       new H3HexagonLayer<HexAggregate & { avgDiscount: number }>({
         id: "deals-discount",
         data: discountHexes,
@@ -184,7 +163,7 @@ export function MapView({
         updateTriggers: {},
       }),
     ],
-    [hexes, discountHexes, priceMin, priceMax, priceRange, layerVisibility],
+    [discountHexes, layerVisibility],
   );
 
   /**
@@ -308,8 +287,27 @@ export function MapView({
           className="pointer-events-none absolute bottom-4 left-4 z-10 rounded-md bg-bg-card border border-border px-3 py-2"
           style={{ width: 280, boxShadow: "var(--shadow-neu-sm)" }}
         >
-          <div className="text-[14px] font-medium text-fg leading-snug">
-            {t("legend.discountMapTitle")}
+          <div className="flex items-center gap-1.5 mb-0.5">
+            <div className="text-[14px] font-medium text-fg leading-snug flex-1">
+              {t("legend.discountMapTitle")}
+            </div>
+            <button
+              type="button"
+              className="pointer-events-auto relative shrink-0 text-fg-muted hover:text-fg transition-colors"
+              onMouseEnter={() => setShowLegendInfo(true)}
+              onMouseLeave={() => setShowLegendInfo(false)}
+              aria-label="Más información"
+            >
+              <Info className="size-3.5" />
+              {showLegendInfo && (
+                <div
+                  className="absolute bottom-full right-0 mb-2 rounded-md bg-bg-card border border-border px-3 py-2 text-left z-20"
+                  style={{ maxWidth: 240, boxShadow: "var(--shadow-neu-sm)", fontSize: 12, color: "var(--fg-muted)", whiteSpace: "normal" }}
+                >
+                  {t("legend.infoText")}
+                </div>
+              )}
+            </button>
           </div>
           <div className="text-[12px] text-fg-muted mb-2">
             {t("legend.discountSubtitle")}
@@ -349,21 +347,34 @@ export function MapView({
             {hover.object.count}{" "}
             {hover.object.count === 1 ? t("map.propertySingular") : t("map.propertyPlural")}
           </div>
-          {layerVisibility.price && (
-            <div className="text-fg-muted">
-              {t("map.avg")} {formatCOP(hover.object.avgPrice)}
-            </div>
-          )}
           {layerVisibility.discount && (
             hover.object.avgDiscount !== null ? (
-              <div
-                style={{
-                  color: hover.object.avgDiscount >= 0 ? "#14b8a6" : "#ef4444",
-                }}
-              >
-                {hover.object.avgDiscount >= 0 ? "+" : ""}
-                {hover.object.avgDiscount}% {t("map.discount")}
-              </div>
+              <>
+                {/* Line A — discount vs market */}
+                {hover.object.avgDiscount === 0 ? (
+                  <div className="text-fg-muted">{t("map.discountAtMarket")}</div>
+                ) : (
+                  <div style={{ color: hover.object.avgDiscount > 0 ? "#1D9E75" : "#D85A30" }}>
+                    {hover.object.avgDiscount > 0 ? "+" : ""}
+                    {hover.object.avgDiscount}%{" "}
+                    {hover.object.avgDiscount > 0
+                      ? t("map.discountBelowPct")
+                      : t("map.discountAbovePct")}
+                  </div>
+                )}
+                {/* Line B — property count + avg price */}
+                <div className="text-fg-muted" style={{ fontSize: 11 }}>
+                  {hover.object.count}{" "}
+                  {hover.object.count === 1 ? t("map.propertySingular") : t("map.propertyPlural")}{" "}
+                  · {t("map.avg")} {formatCOP(hover.object.avgPrice)}
+                </div>
+                {/* Line C — comparable group */}
+                {hover.object.comparableGroupLabel && (
+                  <div className="text-fg-muted italic" style={{ fontSize: 11 }}>
+                    {t("map.comparableVs")} {hover.object.comparableGroupLabel}
+                  </div>
+                )}
+              </>
             ) : (
               <div className="text-fg-muted">{t("map.noDiscount")}</div>
             )

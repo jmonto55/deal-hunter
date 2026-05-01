@@ -204,12 +204,6 @@ export function FilterPanel(props: {
   const layersNode = (
     <div className="space-y-3">
       <LayerToggle
-        label={t("filter.layerPrice")}
-        checked={layerVisibility.price}
-        onCheckedChange={(v) => onLayerVisibilityChange({ ...layerVisibility, price: v })}
-        gradient="linear-gradient(to right, #006837, #a6d96a, #fee08b, #f46d43, #a50026)"
-      />
-      <LayerToggle
         label={t("filter.layerDiscount")}
         checked={layerVisibility.discount}
         onCheckedChange={(v) => onLayerVisibilityChange({ ...layerVisibility, discount: v })}

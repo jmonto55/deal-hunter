@@ -1,14 +1,8 @@
 /**
- * Fills discount_pct, market_price_cop, and deal_score for rows where
- * discount_pct IS NULL, using a reproducible geographically-clustered
- * distribution. Safe to re-run — only touches NULL rows.
- *
- * Desired distribution across filled rows:
- *   10% strong opportunity  (+15 to +25)
- *   25% mild opportunity    ( +5 to +15)
- *   30% neutral             ( -5 to  +5)
- *   25% mild over-market    (-15 to  -5)
- *   10% strong over-market  (-25 to -15)
+ * Seeds discount_pct / market_price_cop / deal_score for NULL rows, and
+ * populates comparable_group_label for ALL rows (including already-scored ones).
+ * Safe to re-run — discount fields only written where currently NULL;
+ * comparable_group_label is always overwritten since it's new data.
  *
  * Run: npm run db:seed-demo-discounts  (from packages/db)
  */
@@ -89,45 +83,115 @@ function sampleFromBand(band: BandName): number {
   return Math.round(Math.max(min, Math.min(max, center + jitter)) * 100) / 100;
 }
 
-// ── Fetch rows needing discount ───────────────────────────────────────────
-type NullRow = { id: number; price_cop: number; neighborhood: string | null };
+// ── Comparable group label helpers ────────────────────────────────────────
+const PLURALS: Record<string, string> = {
+  apartamento:    "apartamentos",
+  casa:           "casas",
+  apartaestudio:  "apartaestudios",
+  penthouse:      "penthouses",
+  lote:           "lotes",
+  oficina:        "oficinas",
+  local:          "locales",
+  bodega:         "bodegas",
+  finca:          "fincas",
+  casa_campestre: "casas campestres",
+};
 
-const nullRows = await sql<NullRow[]>`
-  SELECT id, price_cop, neighborhood
+function pluralize(type: string): string {
+  return PLURALS[type] ?? `${type}s`;
+}
+
+function buildLabel(
+  propertyType: string,
+  neighborhood: string | null,
+  stratum: number | null,
+): string {
+  const plural = pluralize(propertyType);
+  const hood = neighborhood ?? "—";
+  if (stratum !== null) return `${plural} de ${hood}, estrato ${stratum}`;
+  return `${plural} de ${hood}`;
+}
+
+// ── Fetch ALL rows ────────────────────────────────────────────────────────
+type AllRow = {
+  id: number;
+  price_cop: number;
+  neighborhood: string | null;
+  property_type: string;
+  stratum: number | null;
+  discount_pct: string | null; // numeric comes back as string from neon
+};
+
+const allRows = await sql<AllRow[]>`
+  SELECT id, price_cop, neighborhood, property_type, stratum, discount_pct
   FROM deals
-  WHERE discount_pct IS NULL
   ORDER BY id
 `;
 
-console.log(`Found ${nullRows.length} rows with NULL discount_pct`);
+console.log(`Total rows: ${allRows.length}`);
 
+const nullRows = allRows.filter((r) => r.discount_pct === null);
+console.log(`Rows with NULL discount_pct: ${nullRows.length}`);
+
+// ── Part 1 — Update comparable_group_label for ALL rows ──────────────────
+console.log("\nUpdating comparable_group_label for all rows...");
+
+const BATCH = 500;
+let labelUpdated = 0;
+
+for (let i = 0; i < allRows.length; i += BATCH) {
+  const chunk = allRows.slice(i, i + BATCH);
+  const valueParts: string[] = [];
+  const params: (number | string)[] = [];
+  let p = 1;
+
+  for (const r of chunk) {
+    const label = buildLabel(r.property_type, r.neighborhood, r.stratum);
+    valueParts.push(`($${p++}, $${p++})`);
+    params.push(r.id, label);
+  }
+
+  const query = `
+    UPDATE deals
+    SET comparable_group_label = v.cgl
+    FROM (VALUES ${valueParts.join(", ")}) AS v(id, cgl)
+    WHERE deals.id = v.id::int
+  `;
+
+  await sql(query, params);
+  labelUpdated += chunk.length;
+  process.stdout.write(`  ${labelUpdated}/${allRows.length}\r`);
+}
+
+process.stdout.write("\n");
+console.log(`comparable_group_label updated on ${labelUpdated} rows`);
+
+// ── Part 2 — Seed discount fields for NULL rows only ─────────────────────
 if (nullRows.length === 0) {
-  console.log("Nothing to do.");
+  console.log("\nNo NULL discount rows — nothing more to do.");
   process.exit(0);
 }
 
-// ── Assign neighborhood biases (reproducible) ─────────────────────────────
+// Assign neighborhood biases (reproducible)
 const neighborhoods = [...new Set(nullRows.map((r) => r.neighborhood ?? "__none__"))].sort();
-
 const neighborhoodBias: Record<string, BandName> = {};
 for (const n of neighborhoods) {
   neighborhoodBias[n] = pickWeighted(BIAS_OPTIONS);
 }
 
-console.log(`Assigned biases to ${neighborhoods.length} neighborhoods:`);
+console.log(`\nAssigned biases to ${neighborhoods.length} neighborhoods:`);
 for (const n of neighborhoods) {
   console.log(`  ${n.padEnd(24)} → ${neighborhoodBias[n]}`);
 }
 
-// ── Compute updates in memory ─────────────────────────────────────────────
-type UpdateRow = {
+type DiscountUpdate = {
   id: number;
   discountPct: number;
   marketPriceCop: number;
   dealScore: number;
 };
 
-const updates: UpdateRow[] = nullRows.map((row) => {
+const discountUpdates: DiscountUpdate[] = nullRows.map((row) => {
   const bias = neighborhoodBias[row.neighborhood ?? "__none__"]!;
   const discountPct = sampleFromBand(bias);
   const marketPriceCop =
@@ -136,13 +200,10 @@ const updates: UpdateRow[] = nullRows.map((row) => {
   return { id: row.id, discountPct, marketPriceCop, dealScore };
 });
 
-// ── Batch UPDATE via VALUES list (fast — one query per 500 rows) ──────────
-const BATCH = 500;
-let updated = 0;
-
-for (let i = 0; i < updates.length; i += BATCH) {
-  const chunk = updates.slice(i, i + BATCH);
-
+// Batch UPDATE discount fields — WHERE discount_pct IS NULL to be explicit
+let discountUpdated = 0;
+for (let i = 0; i < discountUpdates.length; i += BATCH) {
+  const chunk = discountUpdates.slice(i, i + BATCH);
   const valueParts: string[] = [];
   const params: (number | string)[] = [];
   let p = 1;
@@ -154,85 +215,52 @@ for (let i = 0; i < updates.length; i += BATCH) {
 
   const query = `
     UPDATE deals
-    SET discount_pct    = v.dp::numeric(5,2),
+    SET discount_pct     = v.dp::numeric(5,2),
         market_price_cop = v.mpc::bigint,
         deal_score       = v.ds::smallint
     FROM (VALUES ${valueParts.join(", ")}) AS v(id, dp, mpc, ds)
     WHERE deals.id = v.id::int
+      AND deals.discount_pct IS NULL
   `;
 
   await sql(query, params);
-  updated += chunk.length;
-  process.stdout.write(`  updated ${updated}/${updates.length}\r`);
+  discountUpdated += chunk.length;
+  process.stdout.write(`  discount updated ${discountUpdated}/${discountUpdates.length}\r`);
 }
 
 process.stdout.write("\n");
-console.log(`\nTotal rows updated: ${updated}`);
+console.log(`\nDiscount fields updated on ${discountUpdated} rows`);
 
-// ── Histogram (5% buckets) ────────────────────────────────────────────────
-console.log("\n=== Discount histogram (updated rows only) ===");
-
+// ── Histogram ─────────────────────────────────────────────────────────────
+console.log("\n=== Discount histogram (seeded rows only) ===");
 const BUCKET_STARTS = [-25, -20, -15, -10, -5, 0, 5, 10, 15, 20];
 const bucketCounts: Record<number, number> = {};
 for (const b of BUCKET_STARTS) bucketCounts[b] = 0;
-
-for (const u of updates) {
+for (const u of discountUpdates) {
   let key = BUCKET_STARTS[0]!;
-  for (const b of BUCKET_STARTS) {
-    if (u.discountPct >= b) key = b;
-  }
+  for (const b of BUCKET_STARTS) { if (u.discountPct >= b) key = b; }
   bucketCounts[key]++;
 }
-
 for (const b of BUCKET_STARTS) {
   const count = bucketCounts[b]!;
-  const pct = ((count / updates.length) * 100).toFixed(1);
+  const pct = ((count / discountUpdates.length) * 100).toFixed(1);
   const bar = "█".repeat(Math.round(Number(pct) / 2));
   const sign = (v: number) => (v >= 0 ? "+" : "");
   const label = `${sign(b)}${b}% to ${sign(b + 5)}${b + 5}%`;
   console.log(`  ${label.padEnd(14)}: ${String(count).padStart(4)}  (${pct}%)  ${bar}`);
 }
 
-// ── Per-neighborhood summary ──────────────────────────────────────────────
-const neighStats: Record<string, { sum: number; count: number }> = {};
-
-for (let i = 0; i < updates.length; i++) {
-  const n = nullRows[i]!.neighborhood ?? "__none__";
-  if (!neighStats[n]) neighStats[n] = { sum: 0, count: 0 };
-  neighStats[n].sum += updates[i]!.discountPct;
-  neighStats[n].count++;
-}
-
-const sorted = Object.entries(neighStats)
-  .map(([name, s]) => ({ name, avg: s.sum / s.count, count: s.count }))
-  .sort((a, b) => a.avg - b.avg);
-
-console.log("\n=== Top 5 over-market neighborhoods ===");
-for (const n of sorted.slice(0, 5)) {
-  console.log(
-    `  ${n.name.padEnd(24)}: avg ${n.avg.toFixed(2).padStart(7)}%  (${n.count} listings)`,
-  );
-}
-
-console.log("\n=== Top 5 opportunity neighborhoods ===");
-for (const n of [...sorted].reverse().slice(0, 5)) {
-  console.log(
-    `  ${n.name.padEnd(24)}: avg ${n.avg.toFixed(2).padStart(7)}%  (${n.count} listings)`,
-  );
-}
-
-// ── Final coverage ────────────────────────────────────────────────────────
+// ── Final coverage ─────────────────────────────────────────────────────────
 const [coverage] = await sql<
-  { total: string; scored: string; pct_scored: string }[]
+  { total: string; scored: string; labeled: string }[]
 >`
   SELECT
-    COUNT(*)                                                    AS total,
-    COUNT(discount_pct)                                         AS scored,
-    ROUND(100.0 * COUNT(discount_pct) / NULLIF(COUNT(*), 0), 1) AS pct_scored
+    COUNT(*)               AS total,
+    COUNT(discount_pct)    AS scored,
+    COUNT(comparable_group_label) AS labeled
   FROM deals
 `;
-
 console.log("\n=== Final coverage ===");
 console.log(
-  `  Total: ${coverage!.total}  |  Scored: ${coverage!.scored}  |  pct_scored: ${coverage!.pct_scored}%`,
+  `  Total: ${coverage!.total}  |  Scored: ${coverage!.scored}  |  Labeled: ${coverage!.labeled}`,
 );

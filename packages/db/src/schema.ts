@@ -109,6 +109,7 @@ export const deals = pgTable(
     discountPct: numeric("discount_pct", { precision: 5, scale: 2 }),
     roiAnnualPct: numeric("roi_annual_pct", { precision: 5, scale: 2 }),
     dealScore: smallint("deal_score"),
+    comparableGroupLabel: text("comparable_group_label"),
     isVerified: boolean("is_verified").notNull().default(false),
     isExclusive: boolean("is_exclusive").notNull().default(false),
 

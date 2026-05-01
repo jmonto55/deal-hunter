@@ -89,6 +89,10 @@ const es = {
   "map.avg": "promedio",
   "map.discount": "descuento vs. mercado",
   "map.noDiscount": "sin dato",
+  "map.discountBelowPct": "bajo mercado",
+  "map.discountAbovePct": "sobre mercado",
+  "map.discountAtMarket": "En precio de mercado",
+  "map.comparableVs": "vs.",
   "map.fitToFilters": "Ajustar al filtro",
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
@@ -99,6 +103,7 @@ const es = {
   "legend.discountSubtitle": "Descuento vs. precio del barrio",
   "legend.overMarket": "Sobre mercado",
   "legend.belowMarket": "Bajo mercado",
+  "legend.infoText": "Cada propiedad se compara contra propiedades similares en su mismo barrio, tipo y estrato. El descuento muestra qué tan por debajo (o por encima) está del precio típico de su grupo comparable.",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -172,6 +177,10 @@ const en: Record<keyof typeof es, string> = {
   "map.avg": "avg",
   "map.discount": "discount vs. market",
   "map.noDiscount": "no data",
+  "map.discountBelowPct": "below market",
+  "map.discountAbovePct": "above market",
+  "map.discountAtMarket": "At market price",
+  "map.comparableVs": "vs.",
   "map.fitToFilters": "Fit to filter",
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
@@ -181,6 +190,7 @@ const en: Record<keyof typeof es, string> = {
   "legend.discountSubtitle": "Discount vs. neighborhood price",
   "legend.overMarket": "Over market",
   "legend.belowMarket": "Below market",
+  "legend.infoText": "Each property is compared against similar properties in the same neighborhood, type, and stratum. The discount shows how far below (or above) the typical price of its comparable group.",
 };
 
 export type MessageKey = keyof typeof es;
