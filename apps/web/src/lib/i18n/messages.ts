@@ -77,8 +77,9 @@ const es = {
   "amenity.bbq": "BBQ",
 
   // Discount filter + layer toggles
-  "filter.discount": "Descuento",
+  "filter.discount": "Descuento vs. mercado",
   "filter.discountAny": "Cualquier",
+  "filter.discountInfoText": "Cada propiedad se compara con propiedades similares en su mismo barrio, tipo y estrato. Un descuento positivo significa que está por debajo del precio típico de ese grupo — una posible oportunidad. Un descuento negativo indica sobreprecio frente a comparables.",
   "filter.layers": "Capas del mapa",
   "filter.layerPrice": "Precio",
   "filter.layerDiscount": "Descuento",
@@ -100,7 +101,7 @@ const es = {
   // Discount legend
   "legend.discountTitle": "Descuento vs. Mercado",
   "legend.discountMapTitle": "Mapa de oportunidades",
-  "legend.discountSubtitle": "Descuento vs. precio del barrio",
+  "legend.discountSubtitle": "Comparado vs. propiedades similares (barrio · tipo · estrato)",
   "legend.overMarket": "Sobre mercado",
   "legend.belowMarket": "Bajo mercado",
   "legend.infoText": "Cada propiedad se compara contra propiedades similares en su mismo barrio, tipo y estrato. El descuento muestra qué tan por debajo (o por encima) está del precio típico de su grupo comparable.",
@@ -166,8 +167,9 @@ const en: Record<keyof typeof es, string> = {
   "amenity.playground": "Playground",
   "amenity.bbq": "BBQ",
 
-  "filter.discount": "Discount",
+  "filter.discount": "Discount vs. market",
   "filter.discountAny": "Any",
+  "filter.discountInfoText": "Each property is compared against similar properties in the same neighborhood, type, and stratum. A positive discount means it's priced below the typical for that group — a potential opportunity. A negative discount indicates it's priced above its comparables.",
   "filter.layers": "Map layers",
   "filter.layerPrice": "Price",
   "filter.layerDiscount": "Discount",
@@ -187,7 +189,7 @@ const en: Record<keyof typeof es, string> = {
 
   "legend.discountTitle": "Discount vs. Market",
   "legend.discountMapTitle": "Opportunity map",
-  "legend.discountSubtitle": "Discount vs. neighborhood price",
+  "legend.discountSubtitle": "Compared vs. similar properties (neighborhood · type · stratum)",
   "legend.overMarket": "Over market",
   "legend.belowMarket": "Below market",
   "legend.infoText": "Each property is compared against similar properties in the same neighborhood, type, and stratum. The discount shows how far below (or above) the typical price of its comparable group.",

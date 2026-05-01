@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { latLngToCell } from "h3-js";
 import { FilterPanel } from "@/components/filter-panel";
+import { HeatmapLegend } from "@/components/heatmap-legend";
 import { MapView, type HexAggregate, type LayerVisibility, type LngLatBounds } from "@/components/map-view";
 import { MatchCount } from "@/components/match-count";
 import { PropertyDrawer } from "@/components/property-drawer";
@@ -273,6 +274,9 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
               {t("panel.heading")}
             </h1>
           </header>
+          {!layerVisibility.discount && (
+            <HeatmapLegend priceMin={priceMin} priceMax={priceMax} />
+          )}
           <div className="relative flex-1 min-h-0">
             <MatchCount matched={filtered.length} total={points.length} />
             <MapView
@@ -280,6 +284,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
               fitBounds={fitBounds}
               layerVisibility={layerVisibility}
               onHexClick={setSelectedHex}
+              priceMin={priceMin}
+              priceMax={priceMax}
             />
           </div>
         </section>

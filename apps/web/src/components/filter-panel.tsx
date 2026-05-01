@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import AutoHeight from "embla-carousel-auto-height";
-import { X } from "lucide-react";
+import { Info, X } from "lucide-react";
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
@@ -40,7 +40,7 @@ function toggleSet<T>(prev: ReadonlySet<T>, value: T): Set<T> {
   return next;
 }
 
-type FilterCard = { key: string; label: string; node: ReactNode };
+type FilterCard = { key: string; label: string; node: ReactNode; headerExtra?: ReactNode };
 
 export function FilterPanel(props: {
   priceMin: number;
@@ -207,18 +207,20 @@ export function FilterPanel(props: {
         label={t("filter.layerDiscount")}
         checked={layerVisibility.discount}
         onCheckedChange={(v) => onLayerVisibilityChange({ ...layerVisibility, discount: v })}
-        gradient="linear-gradient(to right, #993C1D 0%, #D85A30 25%, #B4B2A9 50%, #1D9E75 75%, #0F6E56 100%)"
+        gradient="linear-gradient(to right, #FF5A5A 0%, #DC826E 25%, #B4B2A9 50%, #64DCB4 75%, #28E696 100%)"
         minLabel={t("legend.overMarket")}
         maxLabel={t("legend.belowMarket")}
       />
     </div>
   );
 
+  const discountInfoButton = <InfoButton text={t("filter.discountInfoText")} />;
+
   // Desktop has bedrooms and bathrooms as two separate cards.
   const desktopCards: FilterCard[] = [
     { key: "price", label: t("filter.price"), node: priceNode },
     { key: "area", label: t("filter.area"), node: areaNode },
-    { key: "discount", label: t("filter.discount"), node: discountNode },
+    { key: "discount", label: t("filter.discount"), node: discountNode, headerExtra: discountInfoButton },
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
     { key: "bedrooms", label: t("filter.bedrooms"), node: bedroomsChips },
     { key: "bathrooms", label: t("filter.bathrooms"), node: bathroomsChips },
@@ -230,7 +232,7 @@ export function FilterPanel(props: {
   const mobileCards: FilterCard[] = [
     { key: "price", label: t("filter.price"), node: priceNode },
     { key: "area", label: t("filter.area"), node: areaNode },
-    { key: "discount", label: t("filter.discount"), node: discountNode },
+    { key: "discount", label: t("filter.discount"), node: discountNode, headerExtra: discountInfoButton },
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
     {
       key: "rooms",
@@ -275,7 +277,7 @@ export function FilterPanel(props: {
             </div>
           )}
           {desktopCards.map((card) => (
-            <FilterCardLayout key={card.key} label={card.label}>
+            <FilterCardLayout key={card.key} label={card.label} headerExtra={card.headerExtra}>
               {card.node}
             </FilterCardLayout>
           ))}
@@ -374,7 +376,9 @@ function MobileFilterCarousel({
         <CarouselContent className="items-start transition-[height] duration-200">
           {cards.map((card) => (
             <CarouselItem key={card.key}>
-              <FilterCardLayout label={card.label}>{card.node}</FilterCardLayout>
+              <FilterCardLayout label={card.label} headerExtra={card.headerExtra}>
+                {card.node}
+              </FilterCardLayout>
             </CarouselItem>
           ))}
         </CarouselContent>
@@ -389,14 +393,25 @@ function MobileFilterCarousel({
  * carousel stretches all slides to the tallest one's height (so a short card
  * doesn't stick to the top of an oversized slide).
  */
-function FilterCardLayout({ label, children }: { label: string; children: ReactNode }) {
+function FilterCardLayout({
+  label,
+  headerExtra,
+  children,
+}: {
+  label: string;
+  headerExtra?: ReactNode;
+  children: ReactNode;
+}) {
   return (
     <div
       className="rounded-[var(--radius-neu)] p-4 bg-bg-base"
       style={{ boxShadow: "var(--shadow-neu-sm)" }}
     >
-      <div className="text-label font-medium uppercase tracking-wide text-fg-muted mb-3">
-        {label}
+      <div className="flex items-center gap-1.5 mb-3">
+        <div className="flex-1 text-label font-medium uppercase tracking-wide text-fg-muted">
+          {label}
+        </div>
+        {headerExtra}
       </div>
       {children}
     </div>
@@ -409,6 +424,55 @@ function SubSection({ label, children }: { label: string; children: ReactNode })
     <div className="space-y-2">
       <div className="text-label font-medium text-fg-muted">{label}</div>
       {children}
+    </div>
+  );
+}
+
+function InfoButton({ text }: { text: string }) {
+  const [open, setOpen] = useState(false);
+  const [pos, setPos] = useState({ top: 0, left: 0 });
+  const btnRef = useRef<HTMLButtonElement>(null);
+
+  const show = () => {
+    if (btnRef.current) {
+      const r = btnRef.current.getBoundingClientRect();
+      setPos({ top: r.top + r.height / 2, left: r.right + 8 });
+    }
+    setOpen(true);
+  };
+
+  return (
+    <div className="shrink-0">
+      <button
+        ref={btnRef}
+        type="button"
+        className="text-fg-muted hover:text-fg transition-colors"
+        onMouseEnter={show}
+        onMouseLeave={() => setOpen(false)}
+        onClick={show}
+        aria-label="Más información"
+      >
+        <Info className="size-3.5" />
+      </button>
+      {open && (
+        <div
+          className="rounded-md bg-bg-card border border-border px-3 py-2 text-fg-muted"
+          style={{
+            position: "fixed",
+            top: pos.top,
+            left: pos.left,
+            transform: "translateY(-50%)",
+            maxWidth: 280,
+            zIndex: 50,
+            boxShadow: "var(--shadow-neu-sm)",
+            fontSize: 12,
+            pointerEvents: "none",
+            whiteSpace: "normal",
+          }}
+        >
+          {text}
+        </div>
+      )}
     </div>
   );
 }
@@ -439,8 +503,8 @@ function LayerToggle({
         />
         {(minLabel || maxLabel) && (
           <div className="flex justify-between" style={{ fontSize: 10, opacity: checked ? 1 : 0.5 }}>
-            {minLabel && <span style={{ color: "#D85A30" }}>{minLabel}</span>}
-            {maxLabel && <span style={{ color: "#1D9E75" }}>{maxLabel}</span>}
+            {minLabel && <span style={{ color: "#FF5A5A" }}>{minLabel}</span>}
+            {maxLabel && <span style={{ color: "#28E696" }}>{maxLabel}</span>}
           </div>
         )}
       </div>

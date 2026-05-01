@@ -65,19 +65,28 @@ export const PRICE_STOPS: Array<[number, RGBA]> = [
 ];
 
 /**
- * Divergent teal-neutral-coral scale for discount vs. market.
- * t=0 → strong over-market (coral/red), t=0.5 → neutral (slate), t=1 → strong discount (teal).
+ * Divergent red-neutral-green scale for discount vs. market.
+ * t=0 → strong over-market (vivid red), t=0.5 → neutral (warm gray), t=1 → strong discount (vivid green).
  * Maps [-25, +25] pct range to [0, 1].
+ * Pinned endpoints (0 & 0.1, 0.9 & 1.0) keep the extremes at full saturation
+ * so strong discounts/premiums read clearly on dark basemaps.
  */
 export const DISCOUNT_STOPS: Array<[number, RGBA]> = [
-  [0.0,  [220, 38,  38,  220]], // coral-red  (−25%)
-  [0.2,  [248, 113, 113, 225]], // light coral (−15%)
-  [0.38, [252, 165, 165, 220]], // pale coral  ( −5%)
-  [0.5,  [148, 163, 184, 190]], // slate-gray  (  0%)
-  [0.62, [94,  234, 212, 220]], // pale teal   ( +5%)
-  [0.8,  [20,  184, 166, 225]], // teal        (+15%)
-  [1.0,  [17,  94,  89,  230]], // dark teal   (+25%)
+  [0.0,  [255, 90,  90,  230]], // −25% pin   #FF5A5A
+  [0.1,  [255, 90,  90,  230]], // −20%       #FF5A5A
+  [0.3,  [220, 130, 110, 225]], // −10%       #DC826E
+  [0.5,  [180, 178, 169, 200]], //   0%       #B4B2A9
+  [0.7,  [100, 220, 180, 225]], // +10%       #64DCB4
+  [0.9,  [40,  230, 150, 230]], // +20%       #28E696
+  [1.0,  [40,  230, 150, 230]], // +25% pin
 ];
+
+function interpolatePrice(price: number, priceMin: number, priceMax: number): RGBA {
+  const range = priceMax - priceMin;
+  if (range === 0) return PRICE_STOPS[4]![1];
+  const t = Math.sqrt(Math.max(0, Math.min(1, (price - priceMin) / range)));
+  return interpolate(PRICE_STOPS, t);
+}
 
 function interpolateDiscount(discountPct: number): RGBA {
   const t = Math.max(0, Math.min(1, (discountPct + 25) / 50));
@@ -126,11 +135,15 @@ export function MapView({
   fitBounds,
   layerVisibility,
   onHexClick,
+  priceMin,
+  priceMax,
 }: {
   hexes: HexAggregate[];
   fitBounds: LngLatBounds | null;
   layerVisibility: LayerVisibility;
   onHexClick?: (hex: string | null) => void;
+  priceMin?: number;
+  priceMax?: number;
 }) {
   const t = useT();
   const { resolvedTheme } = useTheme();
@@ -150,6 +163,19 @@ export function MapView({
 
   const layers = useMemo(
     () => [
+      new H3HexagonLayer<HexAggregate>({
+        id: "deals-price",
+        data: hexes,
+        getHexagon: (d) => d.hex,
+        getFillColor: (d) =>
+          interpolatePrice(d.avgPrice, priceMin ?? 0, priceMax ?? 1),
+        extruded: false,
+        stroked: false,
+        filled: true,
+        pickable: true,
+        visible: !layerVisibility.discount,
+        updateTriggers: { getFillColor: [priceMin, priceMax] },
+      }),
       new H3HexagonLayer<HexAggregate & { avgDiscount: number }>({
         id: "deals-discount",
         data: discountHexes,
@@ -163,7 +189,7 @@ export function MapView({
         updateTriggers: {},
       }),
     ],
-    [discountHexes, layerVisibility],
+    [hexes, discountHexes, layerVisibility, priceMin, priceMax],
   );
 
   /**
@@ -301,8 +327,8 @@ export function MapView({
               <Info className="size-3.5" />
               {showLegendInfo && (
                 <div
-                  className="absolute bottom-full right-0 mb-2 rounded-md bg-bg-card border border-border px-3 py-2 text-left z-20"
-                  style={{ maxWidth: 240, boxShadow: "var(--shadow-neu-sm)", fontSize: 12, color: "var(--fg-muted)", whiteSpace: "normal" }}
+                  className="absolute top-1/2 left-full ml-2 rounded-md bg-bg-card border border-border px-3 py-2 text-left z-50"
+                  style={{ transform: "translateY(-50%)", maxWidth: 280, boxShadow: "var(--shadow-neu-sm)", fontSize: 12, color: "var(--fg-muted)", whiteSpace: "normal", pointerEvents: "none" }}
                 >
                   {t("legend.infoText")}
                 </div>
@@ -317,19 +343,19 @@ export function MapView({
             style={{
               height: 16,
               background:
-                "linear-gradient(to right, #DC2626 0%, #F87171 20%, #FCA5A5 38%, #94A3B8 50%, #5EEAD4 62%, #14B8A6 80%, #115E59 100%)",
+                "linear-gradient(to right, #FF5A5A 0%, #FF5A5A 10%, #DC826E 30%, #B4B2A9 50%, #64DCB4 70%, #28E696 90%, #28E696 100%)",
             }}
           />
           <div className="flex justify-between mt-1" style={{ fontSize: 11, color: "var(--fg-muted)" }}>
-            <span>−20%</span>
-            <span>−10%</span>
+            <span>−25%</span>
+            <span>−12.5%</span>
             <span>0%</span>
-            <span>+10%</span>
-            <span>+20%</span>
+            <span>+12.5%</span>
+            <span>+25%</span>
           </div>
           <div className="flex justify-between mt-1.5">
-            <span style={{ fontSize: 11, color: "#D85A30" }}>{t("legend.overMarket")}</span>
-            <span style={{ fontSize: 11, color: "#1D9E75" }}>{t("legend.belowMarket")}</span>
+            <span style={{ fontSize: 11, color: "#FF5A5A" }}>{t("legend.overMarket")}</span>
+            <span style={{ fontSize: 11, color: "#28E696" }}>{t("legend.belowMarket")}</span>
           </div>
         </div>
       )}
@@ -347,6 +373,11 @@ export function MapView({
             {hover.object.count}{" "}
             {hover.object.count === 1 ? t("map.propertySingular") : t("map.propertyPlural")}
           </div>
+          {!layerVisibility.discount && (
+            <div className="text-fg-muted" style={{ fontSize: 11 }}>
+              {t("map.avg")} {formatCOP(hover.object.avgPrice)}
+            </div>
+          )}
           {layerVisibility.discount && (
             hover.object.avgDiscount !== null ? (
               <>
@@ -354,7 +385,7 @@ export function MapView({
                 {hover.object.avgDiscount === 0 ? (
                   <div className="text-fg-muted">{t("map.discountAtMarket")}</div>
                 ) : (
-                  <div style={{ color: hover.object.avgDiscount > 0 ? "#1D9E75" : "#D85A30" }}>
+                  <div style={{ color: hover.object.avgDiscount > 0 ? "#28E696" : "#FF5A5A" }}>
                     {hover.object.avgDiscount > 0 ? "+" : ""}
                     {hover.object.avgDiscount}%{" "}
                     {hover.object.avgDiscount > 0

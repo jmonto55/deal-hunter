@@ -1,8 +1,7 @@
 /**
- * Seeds discount_pct / market_price_cop / deal_score for NULL rows, and
- * populates comparable_group_label for ALL rows (including already-scored ones).
- * Safe to re-run — discount fields only written where currently NULL;
- * comparable_group_label is always overwritten since it's new data.
+ * Recalibrates discount_pct / market_price_cop / deal_score for ALL rows using
+ * realistic market distribution weights, and refreshes comparable_group_label.
+ * Safe to re-run — idempotent because PRNG is seeded deterministically.
  *
  * Run: npm run db:seed-demo-discounts  (from packages/db)
  */
@@ -59,10 +58,10 @@ const BANDS: Record<BandName, { min: number; max: number }> = {
 };
 
 const BIAS_OPTIONS: { value: BandName; weight: number }[] = [
-  { value: "strong_opportunity", weight: 10 },
-  { value: "mild_opportunity",   weight: 25 },
-  { value: "neutral",            weight: 30 },
-  { value: "mild_over",          weight: 25 },
+  { value: "strong_opportunity", weight: 3  },
+  { value: "mild_opportunity",   weight: 15 },
+  { value: "neutral",            weight: 45 },
+  { value: "mild_over",          weight: 27 },
   { value: "strong_over",        weight: 10 },
 ];
 
@@ -128,10 +127,7 @@ const allRows = await sql<AllRow[]>`
   ORDER BY id
 `;
 
-console.log(`Total rows: ${allRows.length}`);
-
-const nullRows = allRows.filter((r) => r.discount_pct === null);
-console.log(`Rows with NULL discount_pct: ${nullRows.length}`);
+console.log(`Recalibrating ALL ${allRows.length} rows with new distribution weights`);
 
 // ── Part 1 — Update comparable_group_label for ALL rows ──────────────────
 console.log("\nUpdating comparable_group_label for all rows...");
@@ -166,14 +162,10 @@ for (let i = 0; i < allRows.length; i += BATCH) {
 process.stdout.write("\n");
 console.log(`comparable_group_label updated on ${labelUpdated} rows`);
 
-// ── Part 2 — Seed discount fields for NULL rows only ─────────────────────
-if (nullRows.length === 0) {
-  console.log("\nNo NULL discount rows — nothing more to do.");
-  process.exit(0);
-}
+// ── Part 2 — Recalibrate discount fields for ALL rows ────────────────────
 
 // Assign neighborhood biases (reproducible)
-const neighborhoods = [...new Set(nullRows.map((r) => r.neighborhood ?? "__none__"))].sort();
+const neighborhoods = [...new Set(allRows.map((r) => r.neighborhood ?? "__none__"))].sort();
 const neighborhoodBias: Record<string, BandName> = {};
 for (const n of neighborhoods) {
   neighborhoodBias[n] = pickWeighted(BIAS_OPTIONS);
@@ -191,16 +183,21 @@ type DiscountUpdate = {
   dealScore: number;
 };
 
-const discountUpdates: DiscountUpdate[] = nullRows.map((row) => {
-  const bias = neighborhoodBias[row.neighborhood ?? "__none__"]!;
-  const discountPct = sampleFromBand(bias);
+// Per-row band sampling: each row draws independently from global weights.
+// Neighborhood bias (logged above) is informational — with only 12 neighborhoods
+// the strict "all rows in neighborhood → one band" approach doesn't converge to
+// the target row-level percentages. Per-row sampling is required for that.
+const discountUpdates: DiscountUpdate[] = allRows.map((row) => {
+  void row; // neighborhoodBias kept for logging; sampling is per-row
+  const band = pickWeighted(BIAS_OPTIONS);
+  const discountPct = sampleFromBand(band);
   const marketPriceCop =
     Math.round((row.price_cop / (1 - discountPct / 100)) / 1_000_000) * 1_000_000;
   const dealScore = Math.max(0, Math.min(100, Math.round(50 + discountPct)));
   return { id: row.id, discountPct, marketPriceCop, dealScore };
 });
 
-// Batch UPDATE discount fields — WHERE discount_pct IS NULL to be explicit
+// Batch UPDATE — overwrites existing values (recalibration)
 let discountUpdated = 0;
 for (let i = 0; i < discountUpdates.length; i += BATCH) {
   const chunk = discountUpdates.slice(i, i + BATCH);
@@ -220,7 +217,6 @@ for (let i = 0; i < discountUpdates.length; i += BATCH) {
         deal_score       = v.ds::smallint
     FROM (VALUES ${valueParts.join(", ")}) AS v(id, dp, mpc, ds)
     WHERE deals.id = v.id::int
-      AND deals.discount_pct IS NULL
   `;
 
   await sql(query, params);
@@ -229,10 +225,10 @@ for (let i = 0; i < discountUpdates.length; i += BATCH) {
 }
 
 process.stdout.write("\n");
-console.log(`\nDiscount fields updated on ${discountUpdated} rows`);
+console.log(`\nDiscount fields recalibrated on ${discountUpdated} rows`);
 
 // ── Histogram ─────────────────────────────────────────────────────────────
-console.log("\n=== Discount histogram (seeded rows only) ===");
+console.log("\n=== Discount histogram (all rows) ===");
 const BUCKET_STARTS = [-25, -20, -15, -10, -5, 0, 5, 10, 15, 20];
 const bucketCounts: Record<number, number> = {};
 for (const b of BUCKET_STARTS) bucketCounts[b] = 0;
