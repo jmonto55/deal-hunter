@@ -6,7 +6,8 @@ import { Map, AttributionControl } from "react-map-gl/maplibre";
 import DeckGL from "@deck.gl/react";
 import { H3HexagonLayer } from "@deck.gl/geo-layers";
 import { FlyToInterpolator, WebMercatorViewport, type PickingInfo } from "@deck.gl/core";
-import { Info, Maximize2, Plus, Minus } from "lucide-react";
+import { Maximize2, Plus, Minus } from "lucide-react";
+import { InfoPopover } from "@/components/ui/info-popover";
 import { Button } from "@/components/ui/button";
 import { useT } from "@/lib/i18n/provider";
 
@@ -152,7 +153,6 @@ export function MapView({
   const isFirstFitRef = useRef(true);
   const [viewState, setViewState] = useState<Record<string, unknown>>(INITIAL_VIEW_STATE);
   const [hover, setHover] = useState<PickingInfo<HexAggregate> | null>(null);
-  const [showLegendInfo, setShowLegendInfo] = useState(false);
 
   const styleUrl = resolvedTheme === "light" ? STYLE_LIGHT : STYLE_DARK;
 
@@ -317,23 +317,7 @@ export function MapView({
             <div className="text-[14px] font-medium text-fg leading-snug flex-1">
               {t("legend.discountMapTitle")}
             </div>
-            <button
-              type="button"
-              className="pointer-events-auto relative shrink-0 text-fg-muted hover:text-fg transition-colors"
-              onMouseEnter={() => setShowLegendInfo(true)}
-              onMouseLeave={() => setShowLegendInfo(false)}
-              aria-label="Más información"
-            >
-              <Info className="size-3.5" />
-              {showLegendInfo && (
-                <div
-                  className="absolute top-1/2 left-full ml-2 rounded-md bg-bg-card border border-border px-3 py-2 text-left z-50"
-                  style={{ transform: "translateY(-50%)", maxWidth: 280, boxShadow: "var(--shadow-neu-sm)", fontSize: 12, color: "var(--fg-muted)", whiteSpace: "normal", pointerEvents: "none" }}
-                >
-                  {t("legend.infoText")}
-                </div>
-              )}
-            </button>
+            <InfoPopover text={t("filter.discountInfoText")} />
           </div>
           <div className="text-[12px] text-fg-muted mb-2">
             {t("legend.discountSubtitle")}

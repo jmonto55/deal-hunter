@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import AutoHeight from "embla-carousel-auto-height";
-import { Info, X } from "lucide-react";
+import { X } from "lucide-react";
+import { InfoPopover } from "@/components/ui/info-popover";
 import { PriceRangeFilter } from "@/components/price-range-filter";
 import { AreaRangeFilter } from "@/components/area-range-filter";
 import { Chip } from "@/components/ui/chip";
@@ -214,7 +215,7 @@ export function FilterPanel(props: {
     </div>
   );
 
-  const discountInfoButton = <InfoButton text={t("filter.discountInfoText")} />;
+  const discountInfoButton = <InfoPopover text={t("filter.discountInfoText")} />;
 
   // Desktop has bedrooms and bathrooms as two separate cards.
   const desktopCards: FilterCard[] = [
@@ -424,55 +425,6 @@ function SubSection({ label, children }: { label: string; children: ReactNode })
     <div className="space-y-2">
       <div className="text-label font-medium text-fg-muted">{label}</div>
       {children}
-    </div>
-  );
-}
-
-function InfoButton({ text }: { text: string }) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0 });
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  const show = () => {
-    if (btnRef.current) {
-      const r = btnRef.current.getBoundingClientRect();
-      setPos({ top: r.top + r.height / 2, left: r.right + 8 });
-    }
-    setOpen(true);
-  };
-
-  return (
-    <div className="shrink-0">
-      <button
-        ref={btnRef}
-        type="button"
-        className="text-fg-muted hover:text-fg transition-colors"
-        onMouseEnter={show}
-        onMouseLeave={() => setOpen(false)}
-        onClick={show}
-        aria-label="Más información"
-      >
-        <Info className="size-3.5" />
-      </button>
-      {open && (
-        <div
-          className="rounded-md bg-bg-card border border-border px-3 py-2 text-fg-muted"
-          style={{
-            position: "fixed",
-            top: pos.top,
-            left: pos.left,
-            transform: "translateY(-50%)",
-            maxWidth: 280,
-            zIndex: 50,
-            boxShadow: "var(--shadow-neu-sm)",
-            fontSize: 12,
-            pointerEvents: "none",
-            whiteSpace: "normal",
-          }}
-        >
-          {text}
-        </div>
-      )}
     </div>
   );
 }
