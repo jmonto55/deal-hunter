@@ -19,6 +19,8 @@ export type DealPoint = {
   propertyType: string;
   city: string;
   commune: string | null;
+  neighborhood: string;
+  stratum: number | null;
 };
 
 export type Filters = {
@@ -29,6 +31,8 @@ export type Filters = {
   bathroomBuckets: ReadonlySet<number>;
   cities: ReadonlySet<string>;
   communes: ReadonlySet<string>;
+  neighborhoods: ReadonlySet<string>;
+  strata: ReadonlySet<number>;
 };
 
 const H3_RESOLUTION = 10; // ~65m edge — block / building-cluster scale
@@ -133,6 +137,22 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
   }, [points]);
 
+  const allStrata = useMemo(() => {
+    const set = new Set<number>();
+    for (const p of points) {
+      if (p.stratum !== null) set.add(p.stratum);
+    }
+    return Array.from(set).sort((a, b) => a - b);
+  }, [points]);
+
+  const allNeighborhoods = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of points) {
+      if (p.neighborhood && p.neighborhood !== "—") set.add(p.neighborhood);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
+  }, [points]);
+
   // ── Filter state ───────────────────────────────────────────────────────
   const [priceRange, setPriceRange] = useState<[number, number]>([priceMin, priceMax]);
   const [areaRange, setAreaRange] = useState<[number, number]>([areaMin, areaMax]);
@@ -141,6 +161,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [bathroomBuckets, setBathroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [cities, setCities] = useState<ReadonlySet<string>>(new Set());
   const [communes, setCommunes] = useState<ReadonlySet<string>>(new Set());
+  const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
+  const [strata, setStrata] = useState<ReadonlySet<number>>(new Set());
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -170,9 +192,14 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
           if (!cities.has(p.city)) return false;
         }
       }
+      if (neighborhoods.size > 0 && !neighborhoods.has(p.neighborhood)) return false;
+      if (strata.size > 0) {
+        if (p.stratum === null) return false;
+        if (!strata.has(p.stratum)) return false;
+      }
       return true;
     });
-  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, cities, communes]);
+  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, cities, communes, neighborhoods, strata]);
 
   const hexes = useMemo(() => aggregateToHexes(filtered, H3_RESOLUTION), [filtered]);
 
@@ -194,7 +221,9 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     bedroomBuckets.size > 0 ||
     bathroomBuckets.size > 0 ||
     cities.size > 0 ||
-    communes.size > 0;
+    communes.size > 0 ||
+    neighborhoods.size > 0 ||
+    strata.size > 0;
 
   const resetFilters = useCallback(() => {
     setPriceRange([priceMin, priceMax]);
@@ -204,6 +233,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     setBathroomBuckets(new Set());
     setCities(new Set());
     setCommunes(new Set());
+    setNeighborhoods(new Set());
+    setStrata(new Set());
   }, [priceMin, priceMax, areaMin, areaMax]);
 
   // ── Property drawer ────────────────────────────────────────────────────
@@ -257,6 +288,12 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
           allCommunes={allCommunes}
           communes={communes}
           onCommunesChange={setCommunes}
+          allStrata={allStrata}
+          strata={strata}
+          onStrataChange={setStrata}
+          allNeighborhoods={allNeighborhoods}
+          neighborhoods={neighborhoods}
+          onNeighborhoodsChange={setNeighborhoods}
           hasActiveFilters={hasActiveFilters}
           onReset={resetFilters}
         />

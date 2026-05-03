@@ -63,6 +63,12 @@ export function FilterPanel(props: {
   allCommunes: string[];
   communes: ReadonlySet<string>;
   onCommunesChange: (next: ReadonlySet<string>) => void;
+  allStrata: number[];
+  strata: ReadonlySet<number>;
+  onStrataChange: (next: ReadonlySet<number>) => void;
+  allNeighborhoods: string[];
+  neighborhoods: ReadonlySet<string>;
+  onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
   hasActiveFilters: boolean;
   onReset: () => void;
 }) {
@@ -90,6 +96,12 @@ export function FilterPanel(props: {
     allCommunes,
     communes,
     onCommunesChange,
+    allStrata,
+    strata,
+    onStrataChange,
+    allNeighborhoods,
+    neighborhoods,
+    onNeighborhoodsChange,
     hasActiveFilters,
     onReset,
   } = props;
@@ -199,17 +211,52 @@ export function FilterPanel(props: {
   // Commune card only appears when Medellín is selected
   const showCommune = cities.has("Medellín");
 
+  const strataChips = allStrata.length > 0 ? (
+    <div className="flex flex-wrap gap-2">
+      {allStrata.map((s) => (
+        <Chip
+          key={s}
+          selected={strata.has(s)}
+          onClick={() => onStrataChange(toggleSet(strata, s))}
+        >
+          {String(s)}
+        </Chip>
+      ))}
+    </div>
+  ) : null;
+
+  const neighborhoodLabel =
+    neighborhoods.size > 0
+      ? `${t("filter.neighborhood")} (${neighborhoods.size})`
+      : t("filter.neighborhood");
+
+  const neighborhoodNode = allNeighborhoods.length > 0 ? (
+    <div className="flex flex-wrap gap-2">
+      {allNeighborhoods.map((n) => (
+        <Chip
+          key={n}
+          selected={neighborhoods.has(n)}
+          onClick={() => onNeighborhoodsChange(toggleSet(neighborhoods, n))}
+        >
+          {n}
+        </Chip>
+      ))}
+    </div>
+  ) : null;
+
   // Desktop has bedrooms and bathrooms as two separate cards.
   const desktopCards: FilterCard[] = [
     { key: "price", label: t("filter.price"), node: priceNode },
     { key: "area", label: t("filter.area"), node: areaNode },
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
+    ...(strataChips ? [{ key: "stratum", label: t("filter.stratum"), node: strataChips }] : []),
     { key: "bedrooms", label: t("filter.bedrooms"), node: bedroomsChips },
     { key: "bathrooms", label: t("filter.bathrooms"), node: bathroomsChips },
     { key: "municipality", label: municipalityLabel, node: municipalityNode },
     ...(showCommune
       ? [{ key: "commune", label: communeLabel, node: communeNode }]
       : []),
+    ...(neighborhoodNode ? [{ key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode }] : []),
   ];
 
   // Mobile combines bedrooms + bathrooms into one carousel card.
@@ -217,6 +264,7 @@ export function FilterPanel(props: {
     { key: "price", label: t("filter.price"), node: priceNode },
     { key: "area", label: t("filter.area"), node: areaNode },
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
+    ...(strataChips ? [{ key: "stratum", label: t("filter.stratum"), node: strataChips }] : []),
     {
       key: "rooms",
       label: t("filter.rooms"),
@@ -231,6 +279,7 @@ export function FilterPanel(props: {
     ...(showCommune
       ? [{ key: "commune", label: communeLabel, node: communeNode }]
       : []),
+    ...(neighborhoodNode ? [{ key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode }] : []),
   ];
 
   return (
