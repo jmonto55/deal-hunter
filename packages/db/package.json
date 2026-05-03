@@ -15,6 +15,7 @@
     "db:migrate": "drizzle-kit migrate",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx scripts/seed.ts",
+    "db:normalize-geography": "tsx scripts/normalize-geography.ts",
     "check-types": "tsc --noEmit"
   },
   "dependencies": {
