@@ -17,7 +17,8 @@ export type DealPoint = {
   bedrooms: number;
   bathrooms: number;
   propertyType: string;
-  neighborhood: string;
+  city: string;
+  commune: string | null;
 };
 
 export type Filters = {
@@ -25,7 +26,9 @@ export type Filters = {
   areaRange: [number, number];
   propertyTypes: ReadonlySet<string>;
   bedroomBuckets: ReadonlySet<number>; // 1, 2, 3, 4 (where 4 means "4+")
-  neighborhoods: ReadonlySet<string>;
+  bathroomBuckets: ReadonlySet<number>;
+  cities: ReadonlySet<string>;
+  communes: ReadonlySet<string>;
 };
 
 const H3_RESOLUTION = 10; // ~65m edge — block / building-cluster scale
@@ -104,15 +107,30 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     return { areaMin: min, areaMax: max };
   }, [points]);
 
-  // Property types and neighborhoods present in data — sorted for stable UI
+  // Property types present in data — sorted for stable UI
   const allPropertyTypes = useMemo(() => {
     const set = new Set(points.map((p) => p.propertyType));
     return Array.from(set).sort();
   }, [points]);
 
-  const allNeighborhoods = useMemo(() => {
-    const set = new Set(points.map((p) => p.neighborhood));
-    return Array.from(set).sort();
+  // Municipalities — Medellín first, rest alphabetical
+  const allCities = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of points) set.add(p.city);
+    return Array.from(set).sort((a, b) => {
+      if (a === "Medellín") return -1;
+      if (b === "Medellín") return 1;
+      return a.localeCompare(b, "es");
+    });
+  }, [points]);
+
+  // Medellín communes only
+  const allCommunes = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of points) {
+      if (p.city === "Medellín" && p.commune !== null) set.add(p.commune);
+    }
+    return Array.from(set).sort((a, b) => a.localeCompare(b, "es"));
   }, [points]);
 
   // ── Filter state ───────────────────────────────────────────────────────
@@ -121,7 +139,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
   const [propertyTypes, setPropertyTypes] = useState<ReadonlySet<string>>(new Set());
   const [bedroomBuckets, setBedroomBuckets] = useState<ReadonlySet<number>>(new Set());
   const [bathroomBuckets, setBathroomBuckets] = useState<ReadonlySet<number>>(new Set());
-  const [neighborhoods, setNeighborhoods] = useState<ReadonlySet<string>>(new Set());
+  const [cities, setCities] = useState<ReadonlySet<string>>(new Set());
+  const [communes, setCommunes] = useState<ReadonlySet<string>>(new Set());
 
   // ── Filter pipeline ────────────────────────────────────────────────────
   const filtered = useMemo(() => {
@@ -137,18 +156,31 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
         const bucket = p.bathrooms >= 4 ? 4 : p.bathrooms;
         if (!bathroomBuckets.has(bucket)) return false;
       }
-      if (neighborhoods.size > 0 && !neighborhoods.has(p.neighborhood)) return false;
+      // Geographic filter — two-level hierarchy: municipality → commune
+      if (cities.size > 0 || communes.size > 0) {
+        if (communes.size > 0) {
+          if (p.city === "Medellín") {
+            // Medellín rows must match a selected commune
+            if (p.commune === null || !communes.has(p.commune)) return false;
+          } else {
+            // Non-Medellín rows only pass if their city was explicitly selected
+            if (!cities.has(p.city)) return false;
+          }
+        } else {
+          if (!cities.has(p.city)) return false;
+        }
+      }
       return true;
     });
-  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, neighborhoods]);
+  }, [points, priceRange, areaRange, propertyTypes, bedroomBuckets, bathroomBuckets, cities, communes]);
 
   const hexes = useMemo(() => aggregateToHexes(filtered, H3_RESOLUTION), [filtered]);
 
   // ── Auto-fit bounds (debounced so slider drags don't trigger animation chaos)
   const [debouncedFiltered, setDebouncedFiltered] = useState(filtered);
   useEffect(() => {
-    const t = setTimeout(() => setDebouncedFiltered(filtered), FIT_DEBOUNCE_MS);
-    return () => clearTimeout(t);
+    const timer = setTimeout(() => setDebouncedFiltered(filtered), FIT_DEBOUNCE_MS);
+    return () => clearTimeout(timer);
   }, [filtered]);
 
   const fitBounds = useMemo(() => computeBounds(debouncedFiltered), [debouncedFiltered]);
@@ -161,7 +193,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     propertyTypes.size > 0 ||
     bedroomBuckets.size > 0 ||
     bathroomBuckets.size > 0 ||
-    neighborhoods.size > 0;
+    cities.size > 0 ||
+    communes.size > 0;
 
   const resetFilters = useCallback(() => {
     setPriceRange([priceMin, priceMax]);
@@ -169,7 +202,8 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
     setPropertyTypes(new Set());
     setBedroomBuckets(new Set());
     setBathroomBuckets(new Set());
-    setNeighborhoods(new Set());
+    setCities(new Set());
+    setCommunes(new Set());
   }, [priceMin, priceMax, areaMin, areaMax]);
 
   // ── Property drawer ────────────────────────────────────────────────────
@@ -213,9 +247,16 @@ export function DealsExplorer({ points }: { points: DealPoint[] }) {
           bathroomBuckets={bathroomBuckets}
           onBathroomBucketsChange={setBathroomBuckets}
           bathroomOptions={BATHROOM_BUCKETS}
-          allNeighborhoods={allNeighborhoods}
-          neighborhoods={neighborhoods}
-          onNeighborhoodsChange={setNeighborhoods}
+          allCities={allCities}
+          cities={cities}
+          onCitiesChange={(next) => {
+            setCities(next);
+            // Clear communes if Medellín was deselected
+            if (!next.has("Medellín") && communes.size > 0) setCommunes(new Set());
+          }}
+          allCommunes={allCommunes}
+          communes={communes}
+          onCommunesChange={setCommunes}
           hasActiveFilters={hasActiveFilters}
           onReset={resetFilters}
         />

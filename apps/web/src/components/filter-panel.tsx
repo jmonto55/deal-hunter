@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import AutoHeight from "embla-carousel-auto-height";
 import { X } from "lucide-react";
 import { PriceRangeFilter } from "@/components/price-range-filter";
@@ -57,9 +57,12 @@ export function FilterPanel(props: {
   bathroomBuckets: ReadonlySet<number>;
   onBathroomBucketsChange: (next: ReadonlySet<number>) => void;
   bathroomOptions: readonly number[];
-  allNeighborhoods: string[];
-  neighborhoods: ReadonlySet<string>;
-  onNeighborhoodsChange: (next: ReadonlySet<string>) => void;
+  allCities: string[];
+  cities: ReadonlySet<string>;
+  onCitiesChange: (next: ReadonlySet<string>) => void;
+  allCommunes: string[];
+  communes: ReadonlySet<string>;
+  onCommunesChange: (next: ReadonlySet<string>) => void;
   hasActiveFilters: boolean;
   onReset: () => void;
 }) {
@@ -81,9 +84,12 @@ export function FilterPanel(props: {
     bathroomBuckets,
     onBathroomBucketsChange,
     bathroomOptions,
-    allNeighborhoods,
-    neighborhoods,
-    onNeighborhoodsChange,
+    allCities,
+    cities,
+    onCitiesChange,
+    allCommunes,
+    communes,
+    onCommunesChange,
     hasActiveFilters,
     onReset,
   } = props;
@@ -151,24 +157,47 @@ export function FilterPanel(props: {
     </div>
   );
 
-  const neighborhoodNode = (
+  // ── Hierarchical location filter ─────────────────────────────────────────
+  const municipalityLabel =
+    cities.size > 0
+      ? `${t("filter.municipality")} (${cities.size})`
+      : t("filter.municipality");
+
+  const communeLabel =
+    communes.size > 0
+      ? `${t("filter.commune")} (${communes.size})`
+      : t("filter.commune");
+
+  const municipalityNode = (
     <div className="flex flex-wrap gap-2">
-      {allNeighborhoods.map((n) => (
+      {allCities.map((city) => (
         <Chip
-          key={n}
-          selected={neighborhoods.has(n)}
-          onClick={() => onNeighborhoodsChange(toggleSet(neighborhoods, n))}
+          key={city}
+          selected={cities.has(city)}
+          onClick={() => onCitiesChange(toggleSet(cities, city))}
         >
-          {n}
+          {city}
         </Chip>
       ))}
     </div>
   );
 
-  const neighborhoodLabel =
-    neighborhoods.size > 0
-      ? `${t("filter.neighborhood")} (${neighborhoods.size})`
-      : t("filter.neighborhood");
+  const communeNode = (
+    <div className="flex flex-wrap gap-2">
+      {allCommunes.map((commune) => (
+        <Chip
+          key={commune}
+          selected={communes.has(commune)}
+          onClick={() => onCommunesChange(toggleSet(communes, commune))}
+        >
+          {commune}
+        </Chip>
+      ))}
+    </div>
+  );
+
+  // Commune card only appears when Medellín is selected
+  const showCommune = cities.has("Medellín");
 
   // Desktop has bedrooms and bathrooms as two separate cards.
   const desktopCards: FilterCard[] = [
@@ -177,7 +206,10 @@ export function FilterPanel(props: {
     { key: "property-type", label: t("filter.propertyType"), node: propertyTypeNode },
     { key: "bedrooms", label: t("filter.bedrooms"), node: bedroomsChips },
     { key: "bathrooms", label: t("filter.bathrooms"), node: bathroomsChips },
-    { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
+    { key: "municipality", label: municipalityLabel, node: municipalityNode },
+    ...(showCommune
+      ? [{ key: "commune", label: communeLabel, node: communeNode }]
+      : []),
   ];
 
   // Mobile combines bedrooms + bathrooms into one carousel card.
@@ -195,7 +227,10 @@ export function FilterPanel(props: {
         </div>
       ),
     },
-    { key: "neighborhood", label: neighborhoodLabel, node: neighborhoodNode },
+    { key: "municipality", label: municipalityLabel, node: municipalityNode },
+    ...(showCommune
+      ? [{ key: "commune", label: communeLabel, node: communeNode }]
+      : []),
   ];
 
   return (
@@ -255,6 +290,7 @@ function MobileFilterCarousel({
   const { t } = useLocale();
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
+  const prevLengthRef = useRef(cards.length);
 
   useEffect(() => {
     if (!api) return;
@@ -267,6 +303,16 @@ function MobileFilterCarousel({
       api.off("reInit", update);
     };
   }, [api]);
+
+  // When a card is added/removed (commune card appearing/disappearing),
+  // snap back to 0 so the index never points at a non-existent slide.
+  useEffect(() => {
+    if (prevLengthRef.current !== cards.length) {
+      prevLengthRef.current = cards.length;
+      api?.scrollTo(0);
+      setCurrent(0);
+    }
+  }, [cards.length, api]);
 
   return (
     <div className="space-y-4">
