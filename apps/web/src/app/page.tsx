@@ -14,7 +14,8 @@ async function getDealPoints(): Promise<DealPoint[]> {
       bedrooms: deals.bedrooms,
       bathrooms: deals.bathrooms,
       propertyType: deals.propertyType,
-      neighborhood: deals.neighborhood,
+      city: deals.city,
+      commune: deals.commune,
     })
     .from(deals);
   return rows.map((r) => ({
@@ -25,7 +26,8 @@ async function getDealPoints(): Promise<DealPoint[]> {
     bedrooms: r.bedrooms,
     bathrooms: r.bathrooms,
     propertyType: r.propertyType,
-    neighborhood: r.neighborhood ?? "—",
+    city: r.city,
+    commune: r.commune ?? null,
   }));
 }
 

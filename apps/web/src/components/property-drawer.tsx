@@ -125,6 +125,11 @@ export function PropertyDrawer({
     ? t(PROPERTY_TYPE_KEY[property.propertyType]!)
     : property.propertyType;
 
+  // "El Poblado, Medellín" for Medellín rows; just "Envigado" for others
+  const location = property.commune
+    ? `${property.commune}, ${property.city}`
+    : property.city;
+
   const extras = useMemo(() => pseudoExtras(property), [property]);
   const pricePerM2 = Math.round(property.price / Math.max(1, property.area));
   const description = t("drawer.descriptionTemplate", {
@@ -132,7 +137,7 @@ export function PropertyDrawer({
     area: property.area,
     bedrooms: property.bedrooms,
     bathrooms: property.bathrooms,
-    neighborhood: property.neighborhood,
+    location,
   });
 
   return (
@@ -165,7 +170,7 @@ export function PropertyDrawer({
             <PriceBlock
               price={property.price}
               pricePerM2={pricePerM2}
-              neighborhood={property.neighborhood}
+              location={location}
               typeLabel={typeLabel}
               daysListed={extras.daysListed}
               t={t}
@@ -234,7 +239,7 @@ export function PropertyDrawer({
               <PriceBlock
                 price={property.price}
                 pricePerM2={pricePerM2}
-                neighborhood={property.neighborhood}
+                location={location}
                 typeLabel={typeLabel}
                 daysListed={extras.daysListed}
                 t={t}
@@ -306,7 +311,7 @@ export function PropertyDrawer({
 function PriceBlock({
   price,
   pricePerM2,
-  neighborhood,
+  location,
   typeLabel,
   daysListed,
   t,
@@ -314,7 +319,7 @@ function PriceBlock({
 }: {
   price: number;
   pricePerM2: number;
-  neighborhood: string;
+  location: string;
   typeLabel: string;
   daysListed: number;
   t: ReturnType<typeof useLocale>["t"];
@@ -338,7 +343,7 @@ function PriceBlock({
         </span>
         <span className="inline-flex items-center gap-1">
           <MapPin className="size-3.5" aria-hidden="true" />
-          {neighborhood}
+          {location}
         </span>
         <span className="inline-flex items-center gap-1">
           <Building2 className="size-3.5" aria-hidden="true" />
