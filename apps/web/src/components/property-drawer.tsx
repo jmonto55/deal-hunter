@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Bath,
   BedDouble,
   Building2,
   Calendar,
   Car,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Layers,
   MapPin,
@@ -136,14 +138,19 @@ export function PropertyDrawer({
   onClose: () => void;
 }) {
   const { t } = useLocale();
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
+  // Escape: close the gallery first if it's open; otherwise close the drawer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (galleryIndex !== null) setGalleryIndex(null);
+        else onClose();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, galleryIndex]);
 
   const typeLabel = PROPERTY_TYPE_KEY[property.propertyType]
     ? t(PROPERTY_TYPE_KEY[property.propertyType]!)
@@ -156,6 +163,7 @@ export function PropertyDrawer({
 
   const extras = useMemo(() => pseudoExtras(property), [property]);
   const photos = useMemo(() => pickPhotoSet(property), [property]);
+  const photoList = [photos.hero, photos.secondary, photos.tertiary];
   const pricePerM2 = Math.round(property.price / Math.max(1, property.area));
   const description = t("drawer.descriptionTemplate", {
     type: typeLabel,
@@ -186,7 +194,8 @@ export function PropertyDrawer({
             <img
               src={photos.hero}
               alt=""
-              className="w-full h-48 object-cover rounded-t-[var(--radius-neu)]"
+              onClick={() => setGalleryIndex(0)}
+              className="w-full h-48 object-cover rounded-t-[var(--radius-neu)] cursor-pointer"
             />
             <CloseButton onClose={onClose} label={t("drawer.closeAria")} />
           </div>
@@ -243,19 +252,22 @@ export function PropertyDrawer({
               <img
                 src={photos.hero}
                 alt=""
-                className="row-span-2 w-full h-full object-cover"
+                onClick={() => setGalleryIndex(0)}
+                className="row-span-2 w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photos.secondary}
                 alt=""
-                className="w-full h-full object-cover"
+                onClick={() => setGalleryIndex(1)}
+                className="w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photos.tertiary}
                 alt=""
-                className="w-full h-full object-cover"
+                onClick={() => setGalleryIndex(2)}
+                className="w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
             </div>
 
@@ -329,7 +341,110 @@ export function PropertyDrawer({
           </div>
         </div>
       </div>
+
+      {galleryIndex !== null && (
+        <PhotoGallery
+          photos={photoList}
+          index={galleryIndex}
+          onIndexChange={setGalleryIndex}
+          onClose={() => setGalleryIndex(null)}
+        />
+      )}
     </>
+  );
+}
+
+/** Full-screen photo gallery lightbox. Keyboard: ← → to navigate, Esc to close. */
+function PhotoGallery({
+  photos,
+  index,
+  onIndexChange,
+  onClose,
+}: {
+  photos: string[];
+  index: number;
+  onIndexChange: (i: number) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && index > 0) onIndexChange(index - 1);
+      if (e.key === "ArrowRight" && index < photos.length - 1) onIndexChange(index + 1);
+      // Escape is handled by the drawer's useEffect so the gallery closes first.
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [index, photos.length, onIndexChange]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90"
+      onClick={onClose}
+    >
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar galería"
+        className="absolute top-4 right-4 z-10 flex items-center justify-center size-9 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+      >
+        <X className="size-5" />
+      </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/70 text-sm tabular-nums select-none">
+        {index + 1} / {photos.length}
+      </div>
+
+      {/* Prev button */}
+      {index > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onIndexChange(index - 1); }}
+          aria-label="Foto anterior"
+          className="absolute left-4 flex items-center justify-center size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronLeft className="size-6" />
+        </button>
+      )}
+
+      {/* Photo — stopPropagation so clicking the image doesn't close the gallery */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photos[index]}
+        alt=""
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg select-none"
+        draggable={false}
+      />
+
+      {/* Next button */}
+      {index < photos.length - 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onIndexChange(index + 1); }}
+          aria-label="Siguiente foto"
+          className="absolute right-4 flex items-center justify-center size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronRight className="size-6" />
+        </button>
+      )}
+
+      {/* Dot indicators */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+        {photos.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onIndexChange(i); }}
+            aria-label={`Foto ${i + 1}`}
+            className={`size-2 rounded-full transition-colors ${
+              i === index ? "bg-white" : "bg-white/30 hover:bg-white/60"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
