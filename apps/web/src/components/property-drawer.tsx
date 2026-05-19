@@ -22,21 +22,88 @@ import { useLocale } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { DealPoint } from "@/components/deals-explorer";
 
-type PhotoSet = {
-  hero: string;
-  secondary: string;
-  tertiary: string;
-};
+// A photo set is an ordered list of paths; index 0 = hero (bento large slot).
+// Sorted best→rest by file size so the most impressive shot leads.
+// The bento shows only the first three; the gallery shows all of them.
+type PhotoSet = readonly string[];
 
-// Five sets of real property photos (apps/web/public/properties/).
-// Sets 1 & 4 are JPEG; sets 2, 3 & 5 are WebP — both formats are
-// universally supported in modern browsers.
 const PHOTO_SETS: readonly PhotoSet[] = [
-  { hero: "/properties/set-1/hero.jpg",  secondary: "/properties/set-1/photo-2.jpg",  tertiary: "/properties/set-1/photo-3.jpg"  },
-  { hero: "/properties/set-2/hero.webp", secondary: "/properties/set-2/photo-2.webp", tertiary: "/properties/set-2/photo-3.webp" },
-  { hero: "/properties/set-3/hero.webp", secondary: "/properties/set-3/photo-2.webp", tertiary: "/properties/set-3/photo-3.webp" },
-  { hero: "/properties/set-4/hero.jpg",  secondary: "/properties/set-4/photo-2.jpg",  tertiary: "/properties/set-4/photo-3.jpg"  },
-  { hero: "/properties/set-5/hero.webp", secondary: "/properties/set-5/photo-2.webp", tertiary: "/properties/set-5/photo-3.webp" },
+  // set-1 — 13 photos (6 jpg + 7 webp)
+  [
+    "/properties/set-1/photo-1.jpg",
+    "/properties/set-1/photo-2.jpg",
+    "/properties/set-1/photo-3.jpg",
+    "/properties/set-1/photo-4.jpg",
+    "/properties/set-1/photo-5.jpg",
+    "/properties/set-1/photo-6.jpg",
+    "/properties/set-1/photo-7.webp",
+    "/properties/set-1/photo-8.webp",
+    "/properties/set-1/photo-9.webp",
+    "/properties/set-1/photo-10.webp",
+    "/properties/set-1/photo-11.webp",
+    "/properties/set-1/photo-12.webp",
+    "/properties/set-1/photo-13.webp",
+  ],
+  // set-2 — 12 photos (all webp)
+  [
+    "/properties/set-2/photo-1.webp",
+    "/properties/set-2/photo-2.webp",
+    "/properties/set-2/photo-3.webp",
+    "/properties/set-2/photo-4.webp",
+    "/properties/set-2/photo-5.webp",
+    "/properties/set-2/photo-6.webp",
+    "/properties/set-2/photo-7.webp",
+    "/properties/set-2/photo-8.webp",
+    "/properties/set-2/photo-9.webp",
+    "/properties/set-2/photo-10.webp",
+    "/properties/set-2/photo-11.webp",
+    "/properties/set-2/photo-12.webp",
+  ],
+  // set-3 — 9 photos (all webp)
+  [
+    "/properties/set-3/photo-1.webp",
+    "/properties/set-3/photo-2.webp",
+    "/properties/set-3/photo-3.webp",
+    "/properties/set-3/photo-4.webp",
+    "/properties/set-3/photo-5.webp",
+    "/properties/set-3/photo-6.webp",
+    "/properties/set-3/photo-7.webp",
+    "/properties/set-3/photo-8.webp",
+    "/properties/set-3/photo-9.webp",
+  ],
+  // set-4 — 14 photos (12 jpg + 2 webp)
+  [
+    "/properties/set-4/photo-1.jpg",
+    "/properties/set-4/photo-2.jpg",
+    "/properties/set-4/photo-3.jpg",
+    "/properties/set-4/photo-4.jpg",
+    "/properties/set-4/photo-5.jpg",
+    "/properties/set-4/photo-6.jpg",
+    "/properties/set-4/photo-7.jpg",
+    "/properties/set-4/photo-8.jpg",
+    "/properties/set-4/photo-9.jpg",
+    "/properties/set-4/photo-10.jpg",
+    "/properties/set-4/photo-11.jpg",
+    "/properties/set-4/photo-12.jpg",
+    "/properties/set-4/photo-13.webp",
+    "/properties/set-4/photo-14.webp",
+  ],
+  // set-5 — 13 photos (all webp)
+  [
+    "/properties/set-5/photo-1.webp",
+    "/properties/set-5/photo-2.webp",
+    "/properties/set-5/photo-3.webp",
+    "/properties/set-5/photo-4.webp",
+    "/properties/set-5/photo-5.webp",
+    "/properties/set-5/photo-6.webp",
+    "/properties/set-5/photo-7.webp",
+    "/properties/set-5/photo-8.webp",
+    "/properties/set-5/photo-9.webp",
+    "/properties/set-5/photo-10.webp",
+    "/properties/set-5/photo-11.webp",
+    "/properties/set-5/photo-12.webp",
+    "/properties/set-5/photo-13.webp",
+  ],
 ];
 
 /**
@@ -49,6 +116,8 @@ const PHOTO_SETS: readonly PhotoSet[] = [
  * 400 properties per set with no neighborhood bias.
  */
 function pickPhotoSet(p: DealPoint): PhotoSet {
+  // Returns the full photo array for the property; caller slices [0..2] for
+  // the bento and passes the whole array to the gallery.
   let seed = 0;
   const s = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
   for (let i = 0; i < s.length; i++) seed = (seed * 31 + s.charCodeAt(i)) | 0;
@@ -162,8 +231,7 @@ export function PropertyDrawer({
     : property.city;
 
   const extras = useMemo(() => pseudoExtras(property), [property]);
-  const photos = useMemo(() => pickPhotoSet(property), [property]);
-  const photoList = [photos.hero, photos.secondary, photos.tertiary];
+  const photoSet = useMemo(() => pickPhotoSet(property), [property]);
   const pricePerM2 = Math.round(property.price / Math.max(1, property.area));
   const description = t("drawer.descriptionTemplate", {
     type: typeLabel,
@@ -192,7 +260,7 @@ export function PropertyDrawer({
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={photos.hero}
+              src={photoSet[0]}
               alt=""
               onClick={() => setGalleryIndex(0)}
               className="w-full h-48 object-cover rounded-t-[var(--radius-neu)] cursor-pointer"
@@ -250,21 +318,21 @@ export function PropertyDrawer({
             <div className="col-span-7 row-span-2 grid grid-cols-2 grid-rows-2 gap-1.5 h-80 rounded-[var(--radius-neu)] overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={photos.hero}
+                src={photoSet[0]}
                 alt=""
                 onClick={() => setGalleryIndex(0)}
                 className="row-span-2 w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={photos.secondary}
+                src={photoSet[1]}
                 alt=""
                 onClick={() => setGalleryIndex(1)}
                 className="w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={photos.tertiary}
+                src={photoSet[2]}
                 alt=""
                 onClick={() => setGalleryIndex(2)}
                 className="w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
@@ -344,7 +412,7 @@ export function PropertyDrawer({
 
       {galleryIndex !== null && (
         <PhotoGallery
-          photos={photoList}
+          photos={photoSet}
           index={galleryIndex}
           onIndexChange={setGalleryIndex}
           onClose={() => setGalleryIndex(null)}
@@ -361,7 +429,7 @@ function PhotoGallery({
   onIndexChange,
   onClose,
 }: {
-  photos: string[];
+  photos: readonly string[];
   index: number;
   onIndexChange: (i: number) => void;
   onClose: () => void;
