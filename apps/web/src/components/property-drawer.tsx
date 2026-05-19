@@ -20,15 +20,39 @@ import { useLocale } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { DealPoint } from "@/components/deals-explorer";
 
-// Generic stock photos used for every property — the dataset has no real
-// imagery, so we always show the same placeholders. Mobile shows the hero
-// only; desktop arranges all three in a bento grid.
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=900&q=80&auto=format&fit=crop";
-const SECONDARY_IMAGE =
-  "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80&auto=format&fit=crop";
-const TERTIARY_IMAGE =
-  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80&auto=format&fit=crop";
+type PhotoSet = {
+  hero: string;
+  secondary: string;
+  tertiary: string;
+};
+
+// Five sets of real property photos (apps/web/public/properties/).
+// Sets 1 & 4 are JPEG; sets 2, 3 & 5 are WebP — both formats are
+// universally supported in modern browsers.
+const PHOTO_SETS: readonly PhotoSet[] = [
+  { hero: "/properties/set-1/hero.jpg",  secondary: "/properties/set-1/photo-2.jpg",  tertiary: "/properties/set-1/photo-3.jpg"  },
+  { hero: "/properties/set-2/hero.webp", secondary: "/properties/set-2/photo-2.webp", tertiary: "/properties/set-2/photo-3.webp" },
+  { hero: "/properties/set-3/hero.webp", secondary: "/properties/set-3/photo-2.webp", tertiary: "/properties/set-3/photo-3.webp" },
+  { hero: "/properties/set-4/hero.jpg",  secondary: "/properties/set-4/photo-2.jpg",  tertiary: "/properties/set-4/photo-3.jpg"  },
+  { hero: "/properties/set-5/hero.webp", secondary: "/properties/set-5/photo-2.webp", tertiary: "/properties/set-5/photo-3.webp" },
+];
+
+/**
+ * Pick a stable photo set for a property based on its lat/lng.
+ * Same property always maps to the same set, so a user closing and
+ * reopening the drawer never sees the photos change.
+ *
+ * Distribution: lat+lng → integer seed → seed % PHOTO_SETS.length.
+ * For 2000 properties spread across Aburrá Valley this gives roughly
+ * 400 properties per set with no neighborhood bias.
+ */
+function pickPhotoSet(p: DealPoint): PhotoSet {
+  let seed = 0;
+  const s = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+  for (let i = 0; i < s.length; i++) seed = (seed * 31 + s.charCodeAt(i)) | 0;
+  seed = Math.abs(seed);
+  return PHOTO_SETS[seed % PHOTO_SETS.length]!;
+}
 
 const PROPERTY_TYPE_KEY: Record<string, MessageKey> = {
   apartamento: "propertyType.apartamento",
@@ -131,6 +155,7 @@ export function PropertyDrawer({
     : property.city;
 
   const extras = useMemo(() => pseudoExtras(property), [property]);
+  const photos = useMemo(() => pickPhotoSet(property), [property]);
   const pricePerM2 = Math.round(property.price / Math.max(1, property.area));
   const description = t("drawer.descriptionTemplate", {
     type: typeLabel,
@@ -159,7 +184,7 @@ export function PropertyDrawer({
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={HERO_IMAGE}
+              src={photos.hero}
               alt=""
               className="w-full h-48 object-cover rounded-t-[var(--radius-neu)]"
             />
@@ -216,19 +241,19 @@ export function PropertyDrawer({
             <div className="col-span-7 row-span-2 grid grid-cols-2 grid-rows-2 gap-1.5 h-80 rounded-[var(--radius-neu)] overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={HERO_IMAGE}
+                src={photos.hero}
                 alt=""
                 className="row-span-2 w-full h-full object-cover"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={SECONDARY_IMAGE}
+                src={photos.secondary}
                 alt=""
                 className="w-full h-full object-cover"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={TERTIARY_IMAGE}
+                src={photos.tertiary}
                 alt=""
                 className="w-full h-full object-cover"
               />
