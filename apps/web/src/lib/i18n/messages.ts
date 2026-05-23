@@ -86,6 +86,31 @@ const es = {
   "map.fitToFilters": "Ajustar al filtro",
   "map.zoomIn": "Acercar",
   "map.zoomOut": "Alejar",
+
+  // Business analysis page
+  "drawer.analysisAria": "Análisis de negocio",
+  "analysis.title": "Análisis de Inversión",
+  "analysis.back": "Volver",
+  "analysis.propertyContext": "Propiedad en {neighborhood}",
+  "analysis.modelLabel": "Modelo de negocio",
+  "analysis.model.flipping": "Flipping",
+  "analysis.model.flipping.desc":
+    "Compra por debajo del precio de mercado, reforma y venta por encima del precio promedio. Requiere capital para remodelación y tiempo de ejecución.",
+  "analysis.model.buySell": "Compra y Venta",
+  "analysis.model.buySell.desc":
+    "Identifica propiedades con muy bajo precio por m² para reventa inmediata. Menor ganancia, pero 0 gastos ni tiempos de reforma.",
+  "analysis.model.coliving": "Coliving",
+  "analysis.model.coliving.desc":
+    "Compra para dividir en unidades independientes y arrendar por habitación. Usa el precio promedio de arriendo por m² dividido entre las unidades disponibles.",
+  "analysis.model.buyRent": "Compra y Arriendo",
+  "analysis.model.buyRent.desc":
+    "Arriendo tradicional de largo plazo. Rendimiento estable basado en el precio de mercado de arriendo de la zona.",
+  "analysis.chartTitle": "Evolución de la inversión",
+  "analysis.chartEmpty": "La proyección aparecerá aquí una vez se implemente el modelo.",
+  "analysis.compareToggle": "Comparar con CDT / alto rendimiento",
+  "analysis.benchmarkLabel": "CDT / Cajita ~10.5% EA",
+  "analysis.advantage": "Ventaja vs. CDT",
+  "analysis.disadvantage": "Diferencia vs. CDT",
 } as const;
 
 const en: Record<keyof typeof es, string> = {
@@ -157,6 +182,31 @@ const en: Record<keyof typeof es, string> = {
   "map.fitToFilters": "Fit to filter",
   "map.zoomIn": "Zoom in",
   "map.zoomOut": "Zoom out",
+
+  // Business analysis page
+  "drawer.analysisAria": "Business analysis",
+  "analysis.title": "Investment Analysis",
+  "analysis.back": "Back",
+  "analysis.propertyContext": "Property in {neighborhood}",
+  "analysis.modelLabel": "Business model",
+  "analysis.model.flipping": "Flipping",
+  "analysis.model.flipping.desc":
+    "Buy properties below market price, refurbish, and sell slightly above average. Requires capital for renovation and execution time.",
+  "analysis.model.buySell": "Buy & Sell",
+  "analysis.model.buySell.desc":
+    "Identify very low m² price properties and resell immediately — less profit but zero refurbishing overhead or delays.",
+  "analysis.model.coliving": "Coliving",
+  "analysis.model.coliving.desc":
+    "Buy and split into independent units, rent by room. Uses average m² rental price divided by the number of available units.",
+  "analysis.model.buyRent": "Buy & Rent",
+  "analysis.model.buyRent.desc":
+    "Traditional long-term rental. Stable yield based on the area's market rental price.",
+  "analysis.chartTitle": "Investment evolution",
+  "analysis.chartEmpty": "The projection will appear here once the model is implemented.",
+  "analysis.compareToggle": "Compare with CDT / high-yield account",
+  "analysis.benchmarkLabel": "CDT / Cajita ~10.5% EA",
+  "analysis.advantage": "Advantage vs. CDT",
+  "analysis.disadvantage": "Gap vs. CDT",
 };
 
 export type MessageKey = keyof typeof es;

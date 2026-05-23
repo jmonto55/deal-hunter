@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Bath,
   BedDouble,
+  BarChart2,
   Building2,
   Calendar,
   Car,
@@ -17,6 +18,7 @@ import {
   Sparkles,
   X,
 } from "lucide-react";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { useLocale } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/messages";
@@ -233,6 +235,16 @@ export function PropertyDrawer({
   const extras = useMemo(() => pseudoExtras(property), [property]);
   const photoSet = useMemo(() => pickPhotoSet(property), [property]);
   const pricePerM2 = Math.round(property.price / Math.max(1, property.area));
+
+  const analysisHref = `/analysis?${new URLSearchParams({
+    price: String(property.price),
+    area: String(property.area),
+    bedrooms: String(property.bedrooms),
+    bathrooms: String(property.bathrooms),
+    neighborhood: property.neighborhood,
+    type: property.propertyType,
+  }).toString()}`;
+
   const description = t("drawer.descriptionTemplate", {
     type: typeLabel,
     area: property.area,
@@ -265,7 +277,12 @@ export function PropertyDrawer({
               onClick={() => setGalleryIndex(0)}
               className="w-full h-48 object-cover rounded-t-[var(--radius-neu)] cursor-pointer"
             />
-            <CloseButton onClose={onClose} label={t("drawer.closeAria")} />
+            <DrawerActions
+                onClose={onClose}
+                closeLabel={t("drawer.closeAria")}
+                analysisLabel={t("drawer.analysisAria")}
+                analysisHref={analysisHref}
+              />
           </div>
 
           <div className="p-5 space-y-4">
@@ -309,7 +326,12 @@ export function PropertyDrawer({
         {/* ── DESKTOP LAYOUT — bento grid ──────────────────────── */}
         <div className="hidden md:block p-5">
           <div className="relative">
-            <CloseButton onClose={onClose} label={t("drawer.closeAria")} />
+            <DrawerActions
+                onClose={onClose}
+                closeLabel={t("drawer.closeAria")}
+                analysisLabel={t("drawer.analysisAria")}
+                analysisHref={analysisHref}
+              />
           </div>
 
           {/* Bento: 12-col grid, mixed tile sizes. */}
@@ -566,17 +588,40 @@ function PriceBlock({
   );
 }
 
-function CloseButton({ onClose, label }: { onClose: () => void; label: string }) {
+function DrawerActions({
+  onClose,
+  closeLabel,
+  analysisLabel,
+  analysisHref,
+}: {
+  onClose: () => void;
+  closeLabel: string;
+  analysisLabel: string;
+  analysisHref: string;
+}) {
   return (
-    <Button
-      variant="outline"
-      size="icon-sm"
-      onClick={onClose}
-      aria-label={label}
-      className="absolute top-3 right-3 rounded-full bg-bg-card/95 z-10"
-    >
-      <X />
-    </Button>
+    <div className="absolute top-3 right-3 flex items-center gap-1.5 z-10">
+      <Button
+        variant="outline"
+        size="icon-sm"
+        asChild
+        className="rounded-full bg-bg-card/95"
+        aria-label={analysisLabel}
+      >
+        <Link href={analysisHref}>
+          <BarChart2 />
+        </Link>
+      </Button>
+      <Button
+        variant="outline"
+        size="icon-sm"
+        onClick={onClose}
+        aria-label={closeLabel}
+        className="rounded-full bg-bg-card/95"
+      >
+        <X />
+      </Button>
+    </div>
   );
 }
 
