@@ -1,1 +1,59 @@
 @import "tailwindcss";
+
+:root {
+  --bg-base: #0D0D0D;
+  --bg-card: #1A1A1A;
+  --bg-elevated: #222222;
+  --fg: #FFFFFF;
+  --fg-muted: #A0A0A0;
+  --fg-subtle: #6b6b6b;
+  --border: rgba(255, 255, 255, 0.08);
+  --action: #2D6EF5;
+  --action-fg: #ffffff;
+  --urgent: #F5A623;
+  --urgent-fg: #1a1a1a;
+}
+
+@theme inline {
+  --color-bg-base: var(--bg-base);
+  --color-bg-card: var(--bg-card);
+  --color-bg-elevated: var(--bg-elevated);
+  --color-fg: var(--fg);
+  --color-fg-muted: var(--fg-muted);
+  --color-fg-subtle: var(--fg-subtle);
+  --color-border: var(--border);
+  --color-action: var(--action);
+  --color-action-fg: var(--action-fg);
+  --color-urgent: var(--urgent);
+  --color-urgent-fg: var(--urgent-fg);
+
+  --font-sans: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+
+  --text-h1: 48px;
+  --text-h1--line-height: 1.2;
+  --text-h2: 32px;
+  --text-h2--line-height: 1.2;
+  --text-h3: 24px;
+  --text-h3--line-height: 1.2;
+  --text-body: 16px;
+  --text-body--line-height: 1.5;
+  --text-label: 12px;
+  --text-label--line-height: 1.4;
+  --text-cta: 16px;
+  --text-cta--line-height: 1.2;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+  --font-weight-bold: 700;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+body {
+  background: var(--bg-base);
+  color: var(--fg);
+  font-family: var(--font-poppins), ui-sans-serif, system-ui, sans-serif;
+}
