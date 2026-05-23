@@ -1,12 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   Bath,
   BedDouble,
   Building2,
   Calendar,
   Car,
+  ChevronLeft,
+  ChevronRight,
   Clock,
   Layers,
   MapPin,
@@ -20,15 +22,108 @@ import { useLocale } from "@/lib/i18n/provider";
 import type { MessageKey } from "@/lib/i18n/messages";
 import type { DealPoint } from "@/components/deals-explorer";
 
-// Generic stock photos used for every property — the dataset has no real
-// imagery, so we always show the same placeholders. Mobile shows the hero
-// only; desktop arranges all three in a bento grid.
-const HERO_IMAGE =
-  "https://images.unsplash.com/photo-1564013799919-ab600027ffc6?w=900&q=80&auto=format&fit=crop";
-const SECONDARY_IMAGE =
-  "https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=600&q=80&auto=format&fit=crop";
-const TERTIARY_IMAGE =
-  "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&q=80&auto=format&fit=crop";
+// A photo set is an ordered list of paths; index 0 = hero (bento large slot).
+// Sorted best→rest by file size so the most impressive shot leads.
+// The bento shows only the first three; the gallery shows all of them.
+type PhotoSet = readonly string[];
+
+const PHOTO_SETS: readonly PhotoSet[] = [
+  // set-1 — 13 photos (6 jpg + 7 webp)
+  [
+    "/properties/set-1/photo-1.jpg",
+    "/properties/set-1/photo-2.jpg",
+    "/properties/set-1/photo-3.jpg",
+    "/properties/set-1/photo-4.jpg",
+    "/properties/set-1/photo-5.jpg",
+    "/properties/set-1/photo-6.jpg",
+    "/properties/set-1/photo-7.webp",
+    "/properties/set-1/photo-8.webp",
+    "/properties/set-1/photo-9.webp",
+    "/properties/set-1/photo-10.webp",
+    "/properties/set-1/photo-11.webp",
+    "/properties/set-1/photo-12.webp",
+    "/properties/set-1/photo-13.webp",
+  ],
+  // set-2 — 12 photos (all webp)
+  [
+    "/properties/set-2/photo-1.webp",
+    "/properties/set-2/photo-2.webp",
+    "/properties/set-2/photo-3.webp",
+    "/properties/set-2/photo-4.webp",
+    "/properties/set-2/photo-5.webp",
+    "/properties/set-2/photo-6.webp",
+    "/properties/set-2/photo-7.webp",
+    "/properties/set-2/photo-8.webp",
+    "/properties/set-2/photo-9.webp",
+    "/properties/set-2/photo-10.webp",
+    "/properties/set-2/photo-11.webp",
+    "/properties/set-2/photo-12.webp",
+  ],
+  // set-3 — 9 photos (all webp)
+  [
+    "/properties/set-3/photo-1.webp",
+    "/properties/set-3/photo-2.webp",
+    "/properties/set-3/photo-3.webp",
+    "/properties/set-3/photo-4.webp",
+    "/properties/set-3/photo-5.webp",
+    "/properties/set-3/photo-6.webp",
+    "/properties/set-3/photo-7.webp",
+    "/properties/set-3/photo-8.webp",
+    "/properties/set-3/photo-9.webp",
+  ],
+  // set-4 — 14 photos (12 jpg + 2 webp)
+  [
+    "/properties/set-4/photo-1.jpg",
+    "/properties/set-4/photo-2.jpg",
+    "/properties/set-4/photo-3.jpg",
+    "/properties/set-4/photo-4.jpg",
+    "/properties/set-4/photo-5.jpg",
+    "/properties/set-4/photo-6.jpg",
+    "/properties/set-4/photo-7.jpg",
+    "/properties/set-4/photo-8.jpg",
+    "/properties/set-4/photo-9.jpg",
+    "/properties/set-4/photo-10.jpg",
+    "/properties/set-4/photo-11.jpg",
+    "/properties/set-4/photo-12.jpg",
+    "/properties/set-4/photo-13.webp",
+    "/properties/set-4/photo-14.webp",
+  ],
+  // set-5 — 13 photos (all webp)
+  [
+    "/properties/set-5/photo-1.webp",
+    "/properties/set-5/photo-2.webp",
+    "/properties/set-5/photo-3.webp",
+    "/properties/set-5/photo-4.webp",
+    "/properties/set-5/photo-5.webp",
+    "/properties/set-5/photo-6.webp",
+    "/properties/set-5/photo-7.webp",
+    "/properties/set-5/photo-8.webp",
+    "/properties/set-5/photo-9.webp",
+    "/properties/set-5/photo-10.webp",
+    "/properties/set-5/photo-11.webp",
+    "/properties/set-5/photo-12.webp",
+    "/properties/set-5/photo-13.webp",
+  ],
+];
+
+/**
+ * Pick a stable photo set for a property based on its lat/lng.
+ * Same property always maps to the same set, so a user closing and
+ * reopening the drawer never sees the photos change.
+ *
+ * Distribution: lat+lng → integer seed → seed % PHOTO_SETS.length.
+ * For 2000 properties spread across Aburrá Valley this gives roughly
+ * 400 properties per set with no neighborhood bias.
+ */
+function pickPhotoSet(p: DealPoint): PhotoSet {
+  // Returns the full photo array for the property; caller slices [0..2] for
+  // the bento and passes the whole array to the gallery.
+  let seed = 0;
+  const s = `${p.lat.toFixed(5)},${p.lng.toFixed(5)}`;
+  for (let i = 0; i < s.length; i++) seed = (seed * 31 + s.charCodeAt(i)) | 0;
+  seed = Math.abs(seed);
+  return PHOTO_SETS[seed % PHOTO_SETS.length]!;
+}
 
 const PROPERTY_TYPE_KEY: Record<string, MessageKey> = {
   apartamento: "propertyType.apartamento",
@@ -112,14 +207,19 @@ export function PropertyDrawer({
   onClose: () => void;
 }) {
   const { t } = useLocale();
+  const [galleryIndex, setGalleryIndex] = useState<number | null>(null);
 
+  // Escape: close the gallery first if it's open; otherwise close the drawer.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") {
+        if (galleryIndex !== null) setGalleryIndex(null);
+        else onClose();
+      }
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
-  }, [onClose]);
+  }, [onClose, galleryIndex]);
 
   const typeLabel = PROPERTY_TYPE_KEY[property.propertyType]
     ? t(PROPERTY_TYPE_KEY[property.propertyType]!)
@@ -131,6 +231,7 @@ export function PropertyDrawer({
     : property.city;
 
   const extras = useMemo(() => pseudoExtras(property), [property]);
+  const photoSet = useMemo(() => pickPhotoSet(property), [property]);
   const pricePerM2 = Math.round(property.price / Math.max(1, property.area));
   const description = t("drawer.descriptionTemplate", {
     type: typeLabel,
@@ -159,9 +260,10 @@ export function PropertyDrawer({
           <div className="relative">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={HERO_IMAGE}
+              src={photoSet[0]}
               alt=""
-              className="w-full h-48 object-cover rounded-t-[var(--radius-neu)]"
+              onClick={() => setGalleryIndex(0)}
+              className="w-full h-48 object-cover rounded-t-[var(--radius-neu)] cursor-pointer"
             />
             <CloseButton onClose={onClose} label={t("drawer.closeAria")} />
           </div>
@@ -216,21 +318,24 @@ export function PropertyDrawer({
             <div className="col-span-7 row-span-2 grid grid-cols-2 grid-rows-2 gap-1.5 h-80 rounded-[var(--radius-neu)] overflow-hidden">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={HERO_IMAGE}
+                src={photoSet[0]}
                 alt=""
-                className="row-span-2 w-full h-full object-cover"
+                onClick={() => setGalleryIndex(0)}
+                className="row-span-2 w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={SECONDARY_IMAGE}
+                src={photoSet[1]}
                 alt=""
-                className="w-full h-full object-cover"
+                onClick={() => setGalleryIndex(1)}
+                className="w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
-                src={TERTIARY_IMAGE}
+                src={photoSet[2]}
                 alt=""
-                className="w-full h-full object-cover"
+                onClick={() => setGalleryIndex(2)}
+                className="w-full h-full object-cover cursor-pointer hover:brightness-90 transition-[filter] duration-150"
               />
             </div>
 
@@ -304,7 +409,110 @@ export function PropertyDrawer({
           </div>
         </div>
       </div>
+
+      {galleryIndex !== null && (
+        <PhotoGallery
+          photos={photoSet}
+          index={galleryIndex}
+          onIndexChange={setGalleryIndex}
+          onClose={() => setGalleryIndex(null)}
+        />
+      )}
     </>
+  );
+}
+
+/** Full-screen photo gallery lightbox. Keyboard: ← → to navigate, Esc to close. */
+function PhotoGallery({
+  photos,
+  index,
+  onIndexChange,
+  onClose,
+}: {
+  photos: readonly string[];
+  index: number;
+  onIndexChange: (i: number) => void;
+  onClose: () => void;
+}) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft" && index > 0) onIndexChange(index - 1);
+      if (e.key === "ArrowRight" && index < photos.length - 1) onIndexChange(index + 1);
+      // Escape is handled by the drawer's useEffect so the gallery closes first.
+    };
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [index, photos.length, onIndexChange]);
+
+  return (
+    <div
+      className="fixed inset-0 z-[60] flex items-center justify-center bg-black/90"
+      onClick={onClose}
+    >
+      {/* Close button */}
+      <button
+        type="button"
+        onClick={onClose}
+        aria-label="Cerrar galería"
+        className="absolute top-4 right-4 z-10 flex items-center justify-center size-9 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+      >
+        <X className="size-5" />
+      </button>
+
+      {/* Counter */}
+      <div className="absolute top-4 left-1/2 -translate-x-1/2 text-white/70 text-sm tabular-nums select-none">
+        {index + 1} / {photos.length}
+      </div>
+
+      {/* Prev button */}
+      {index > 0 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onIndexChange(index - 1); }}
+          aria-label="Foto anterior"
+          className="absolute left-4 flex items-center justify-center size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronLeft className="size-6" />
+        </button>
+      )}
+
+      {/* Photo — stopPropagation so clicking the image doesn't close the gallery */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={photos[index]}
+        alt=""
+        onClick={(e) => e.stopPropagation()}
+        className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg select-none"
+        draggable={false}
+      />
+
+      {/* Next button */}
+      {index < photos.length - 1 && (
+        <button
+          type="button"
+          onClick={(e) => { e.stopPropagation(); onIndexChange(index + 1); }}
+          aria-label="Siguiente foto"
+          className="absolute right-4 flex items-center justify-center size-10 rounded-full bg-white/10 text-white hover:bg-white/20 transition-colors"
+        >
+          <ChevronRight className="size-6" />
+        </button>
+      )}
+
+      {/* Dot indicators */}
+      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+        {photos.map((_, i) => (
+          <button
+            key={i}
+            type="button"
+            onClick={(e) => { e.stopPropagation(); onIndexChange(i); }}
+            aria-label={`Foto ${i + 1}`}
+            className={`size-2 rounded-full transition-colors ${
+              i === index ? "bg-white" : "bg-white/30 hover:bg-white/60"
+            }`}
+          />
+        ))}
+      </div>
+    </div>
   );
 }
 
