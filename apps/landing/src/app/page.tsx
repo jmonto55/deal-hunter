@@ -188,7 +188,10 @@ function FormSection() {
     <section id="form" className="mx-auto max-w-6xl w-full px-4 sm:px-6 lg:px-8 py-20 md:py-28 flex flex-col items-center">
       <div className="w-full max-w-lg flex flex-col gap-8">
         <div className="flex flex-col gap-3">
-          <h2 className="text-h2 font-semibold text-fg">
+          <h2
+            className="font-bold text-fg leading-tight"
+            style={{ fontSize: "40px", letterSpacing: "-0.02em" }}
+          >
             Solicitar acceso anticipado
           </h2>
           <p className="text-body text-fg-muted">
@@ -212,7 +215,7 @@ function FormSection() {
           >
             <div>
               <Label htmlFor="name">
-                Nombre <span className="text-fg-subtle normal-case">*</span>
+                Nombre <span className="text-action">*</span>
               </Label>
               <Input
                 id="name"
@@ -221,15 +224,15 @@ function FormSection() {
                 placeholder="Juan Pérez"
                 autoComplete="name"
               />
-              {errors.name && (
-                <p className="mt-1 text-label text-urgent">{errors.name}</p>
-              )}
+              <p className="mt-1 text-label text-urgent min-h-[1.25rem]">
+                {errors.name ?? ""}
+              </p>
             </div>
 
             <div>
               <Label htmlFor="email">
                 Correo electrónico{" "}
-                <span className="text-fg-subtle normal-case">*</span>
+                <span className="text-action">*</span>
               </Label>
               <Input
                 id="email"
@@ -238,13 +241,16 @@ function FormSection() {
                 placeholder="juan@empresa.com"
                 autoComplete="email"
               />
-              {errors.email && (
-                <p className="mt-1 text-label text-urgent">{errors.email}</p>
-              )}
+              <p className="mt-1 text-label text-urgent min-h-[1.25rem]">
+                {errors.email ?? ""}
+              </p>
             </div>
 
             <div>
-              <Label htmlFor="phone">Teléfono</Label>
+              <Label htmlFor="phone">
+                Teléfono{" "}
+                <span className="text-fg-subtle font-normal">(opcional)</span>
+              </Label>
               <Input
                 id="phone"
                 name="phone"
@@ -252,6 +258,7 @@ function FormSection() {
                 placeholder="+57 300 000 0000"
                 autoComplete="tel"
               />
+              <p className="mt-1 text-label text-urgent min-h-[1.25rem]" />
             </div>
 
             {state === "error" && (
@@ -264,9 +271,9 @@ function FormSection() {
               type="submit"
               size="lg"
               disabled={state === "loading"}
-              className="uppercase font-bold w-full mt-1"
+              className="w-full mt-1"
             >
-              {state === "loading" ? "ENVIANDO..." : "ENVIAR SOLICITUD"}
+              {state === "loading" ? "Enviando..." : "Enviar solicitud"}
             </Button>
           </form>
         )}
