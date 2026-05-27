@@ -166,6 +166,7 @@ function FormSection() {
     const data = new FormData(e.currentTarget);
     const name = (data.get("name") as string).trim();
     const email = (data.get("email") as string).trim();
+    const phone = (data.get("phone") as string).trim();
 
     const newErrors: typeof errors = {};
     if (!name) newErrors.name = "Requerido";
@@ -180,8 +181,25 @@ function FormSection() {
     setErrors({});
     setState("loading");
 
-    await new Promise((r) => setTimeout(r, 800));
-    setState("success");
+    try {
+      const res = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, phone: phone || null }),
+      });
+
+      if (res.status === 409) {
+        setErrors({ email: "Este correo ya está registrado" });
+        setState("idle");
+        return;
+      }
+
+      if (!res.ok) throw new Error("request failed");
+
+      setState("success");
+    } catch {
+      setState("error");
+    }
   }
 
   return (
